@@ -22,6 +22,10 @@ public class GroupOwner {
 	@Column(name = "email")
 	private String email;
 
+	@NonNull
+	@Column(name = "password")
+	private String password;
+
 	@OneToMany(fetch = FetchType.LAZY)
 	private List<Group> groups;
 

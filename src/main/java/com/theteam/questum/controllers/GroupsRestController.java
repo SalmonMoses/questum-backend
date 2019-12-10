@@ -9,6 +9,7 @@ import com.theteam.questum.requests.CreateGroupRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -36,7 +37,7 @@ public class GroupsRestController {
 	public ResponseEntity<Group> getById(@PathVariable Long id) {
 		Optional<Group> group = groups.findById(id);
 		return group
-				.map(value -> new ResponseEntity<>(value, HttpStatus.OK))
+				.map(ResponseEntity::ok)
 				.orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
 	}
 
@@ -44,7 +45,7 @@ public class GroupsRestController {
 	public ResponseEntity<GroupOwner> getOwnerOfGroup(@PathVariable Long id) {
 		Optional<Group> group = groups.findById(id);
 		return group
-				.map(value -> new ResponseEntity<>(value.getOwner(), HttpStatus.OK))
+				.map(value -> ResponseEntity.ok(value.getOwner()))
 				.orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
 	}
 
