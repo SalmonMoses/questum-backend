@@ -29,6 +29,9 @@ public class GroupOwner {
 	@OneToMany(fetch = FetchType.LAZY)
 	private List<Group> groups;
 
+	@OneToOne(mappedBy = "owner")
+	private OwnerAuthToken token;
+
 	public GroupOwner() {
 	}
 }
