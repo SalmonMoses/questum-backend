@@ -1,7 +1,7 @@
 package com.theteam.questum.repositories;
 
-import com.theteam.questum.models.Group;
+import com.theteam.questum.models.QuestGroup;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface GroupRepository extends JpaRepository<Group, Long> {
+public interface GroupRepository extends JpaRepository<QuestGroup, Long> {
 }

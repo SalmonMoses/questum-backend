@@ -5,29 +5,24 @@ import lombok.NonNull;
 
 import javax.persistence.*;
 import java.sql.Timestamp;
-import java.util.UUID;
 
 @Entity
-@Table(name = "owner_tokens")
 @Data
-public class OwnerAuthToken {
+@Table(name = "tokens")
+public class AuthToken {
 	@Id
 	@GeneratedValue
 	private Long id;
 
 	@Column(name = "token")
-	@NonNull
-	private UUID token;
+	private String token;
 
-	@OneToOne
-	@JoinColumn(name = "user_id", referencedColumnName = "id")
-	@NonNull
-	private GroupOwner owner;
-
-	@NonNull
 	@Column(name = "expiration_date")
 	private Timestamp expirationDate;
 
-	public OwnerAuthToken() {
-	}
+	@Column(name = "user_id")
+	private Long owner;
+
+	@Column(name="type")
+	String type;
 }

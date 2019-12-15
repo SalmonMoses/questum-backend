@@ -6,9 +6,9 @@ import lombok.NonNull;
 import javax.persistence.*;
 
 @Entity
-@Table(name = "groups")
+@Table(name = "quest_groups")
 @Data
-public class Group {
+public class QuestGroup {
 	@Id
 	@GeneratedValue
 	private long id;
@@ -22,7 +22,7 @@ public class Group {
 	@JoinColumn(name = "owner_id")
 	private GroupOwner owner;
 
-	public Group() {
+	public QuestGroup() {
 
 	}
 }

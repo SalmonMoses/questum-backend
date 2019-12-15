@@ -2,6 +2,7 @@ package com.theteam.questum.models;
 
 import lombok.Data;
 import lombok.NonNull;
+import lombok.ToString;
 
 import javax.persistence.*;
 import java.util.List;
@@ -26,11 +27,9 @@ public class GroupOwner {
 	@Column(name = "password")
 	private String password;
 
-	@OneToMany(fetch = FetchType.LAZY)
-	private List<Group> groups;
-
-	@OneToOne(mappedBy = "owner")
-	private OwnerAuthToken token;
+	@OneToMany(fetch = FetchType.EAGER, mappedBy = "owner")
+	@ToString.Exclude
+	private List<QuestGroup> questGroups;
 
 	public GroupOwner() {
 	}

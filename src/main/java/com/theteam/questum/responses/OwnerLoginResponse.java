@@ -1,13 +1,10 @@
 package com.theteam.questum.responses;
 
-import com.theteam.questum.models.Group;
-import com.theteam.questum.models.GroupOwner;
+import com.theteam.questum.dto.QuestGroupOwnerDTO;
 import lombok.Value;
-
-import java.util.UUID;
 
 @Value
 public class OwnerLoginResponse {
-	private final UUID token;
-	private final GroupOwner owner;
+	private final String token;
+	private final QuestGroupOwnerDTO owner;
 }

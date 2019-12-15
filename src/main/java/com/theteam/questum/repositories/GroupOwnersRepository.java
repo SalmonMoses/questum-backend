@@ -1,6 +1,5 @@
 package com.theteam.questum.repositories;
 
-import com.theteam.questum.models.Group;
 import com.theteam.questum.models.GroupOwner;
 import org.springframework.data.jpa.repository.JpaRepository;
 
