@@ -4,7 +4,7 @@ import com.theteam.questum.models.AuthToken;
 import com.theteam.questum.models.GroupOwner;
 import com.theteam.questum.models.QuestGroup;
 import com.theteam.questum.repositories.GroupOwnersRepository;
-import com.theteam.questum.security.GroupOwnerDetails;
+import com.theteam.questum.security.GroupOwnerPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -16,12 +16,12 @@ public class QuestumAuthService {
 	@Autowired
 	GroupOwnersRepository owners;
 
-	public GroupOwnerDetails handleOwnerLogin(AuthToken token) {
+	public GroupOwnerPrincipal handleOwnerLogin(AuthToken token) {
 		GroupOwner owner = owners.findById(token.getOwner()).get();
 		List<Long> groupIds = owner.getQuestGroups()
 		                           .stream()
 		                           .map(QuestGroup::getId)
 		                           .collect(Collectors.toList());
-		return new GroupOwnerDetails(owner.getEmail(), owner.getName(), groupIds);
+		return new GroupOwnerPrincipal(owner.getEmail(), owner.getName(), groupIds);
 	}
 }

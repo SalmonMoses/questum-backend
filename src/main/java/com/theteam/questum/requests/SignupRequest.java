@@ -4,7 +4,13 @@ import lombok.NonNull;
 import lombok.Value;
 
 @Value
-public class CreateGroupRequest {
+public class SignupRequest {
+	@NonNull
+	String email;
+
 	@NonNull
 	String name;
+
+	@NonNull
+	String password;
 }

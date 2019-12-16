@@ -6,15 +6,20 @@ import com.theteam.questum.models.GroupOwner;
 import com.theteam.questum.repositories.GroupOwnersRepository;
 import com.theteam.questum.repositories.GroupRepository;
 import com.theteam.questum.repositories.TokenRepository;
-import com.theteam.questum.requests.LoginRequest;
+import com.theteam.questum.requests.OwnerLoginRequest;
+import com.theteam.questum.requests.SignupRequest;
 import com.theteam.questum.responses.OwnerLoginResponse;
+import com.theteam.questum.responses.OwnerSignupResponse;
+import javassist.tools.web.BadHttpRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.net.http.HttpResponse;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -22,6 +27,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @RestController
+@RequestMapping("/login")
 public class LoginController {
 	@Autowired
 	private final GroupRepository groups;
@@ -38,7 +44,7 @@ public class LoginController {
 
 	@PostMapping("/login/admin")
 //	@PreAuthorize("permitAll()")
-	public ResponseEntity<OwnerLoginResponse> login(@RequestBody LoginRequest req) {
+	public ResponseEntity<OwnerLoginResponse> login(@RequestBody OwnerLoginRequest req) {
 		if (req.getRefreshToken() != null) {
 			// TODO: implement auth with refresh token
 			return null;

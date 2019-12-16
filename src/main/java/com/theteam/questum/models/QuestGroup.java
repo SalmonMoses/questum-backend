@@ -4,6 +4,7 @@ import lombok.Data;
 import lombok.NonNull;
 
 import javax.persistence.*;
+import java.util.List;
 
 @Entity
 @Table(name = "quest_groups")
@@ -21,6 +22,10 @@ public class QuestGroup {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "owner_id")
 	private GroupOwner owner;
+
+	@NonNull
+	@OneToMany(fetch = FetchType.LAZY)
+	private List<QuestParticipant> participants;
 
 	public QuestGroup() {
 

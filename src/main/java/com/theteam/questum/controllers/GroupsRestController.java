@@ -7,10 +7,12 @@ import com.theteam.questum.models.QuestGroup;
 import com.theteam.questum.repositories.GroupOwnersRepository;
 import com.theteam.questum.repositories.GroupRepository;
 import com.theteam.questum.requests.CreateGroupRequest;
+import com.theteam.questum.security.GroupOwnerPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -55,17 +57,15 @@ public class GroupsRestController {
 	}
 
 	@PostMapping("/create")
-	public ResponseEntity<QuestGroup> createGroup(@RequestBody CreateGroupRequest req) {
-		Optional<GroupOwner> owner = owners.findById(req.getGroupOwnerId());
-		if (owner.isEmpty()) {
-			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-		}
+	public ResponseEntity<QuestGroupDTO> createGroup(@RequestBody CreateGroupRequest req, Authentication auth) {
+		String ownerEmail = ((GroupOwnerPrincipal) auth.getPrincipal()).getEmail();
+		Optional<GroupOwner> owner = owners.findByEmail(ownerEmail);
 		return owner.map(value -> {
 			QuestGroup questGroup = new QuestGroup();
 			questGroup.setName(req.getName());
 			questGroup.setOwner(value);
 			groups.save(questGroup);
-			return new ResponseEntity<>(questGroup, HttpStatus.CREATED);
+			return new ResponseEntity<>(QuestGroupDTO.of(questGroup), HttpStatus.CREATED);
 		}).orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
 	}
 }

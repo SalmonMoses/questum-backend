@@ -1,8 +1,7 @@
 package com.theteam.questum.security;
 
+import com.theteam.questum.exceptions.TokenExpiredException;
 import com.theteam.questum.models.AuthToken;
-import com.theteam.questum.models.GroupOwner;
-import com.theteam.questum.models.QuestGroup;
 import com.theteam.questum.repositories.TokenRepository;
 import com.theteam.questum.services.QuestumAuthService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,9 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Component
 public class QuestumAuthManager implements AuthenticationManager {
@@ -36,9 +33,12 @@ public class QuestumAuthManager implements AuthenticationManager {
 		if (token.isEmpty()) {
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
 		}
+		if(token.get().getExpirationDate().getTime() < System.currentTimeMillis()) {
+			throw new TokenExpiredException(token.get().getToken());
+		}
 		switch (token.get().getType()) {
 			case "ADMIN": {
-				GroupOwnerDetails details = authService.handleOwnerLogin(token.get());
+				GroupOwnerPrincipal details = authService.handleOwnerLogin(token.get());
 				ArrayList<SimpleGrantedAuthority> authorities = new ArrayList<>();
 				authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
 				return new UsernamePasswordAuthenticationToken(details, token.get(),
@@ -47,11 +47,8 @@ public class QuestumAuthManager implements AuthenticationManager {
 			case "USER": {
 				return null;
 			}
-			case "CLIENT": {
-				return null;
-			}
 			default: {
-				return null;
+				throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
 			}
 		}
 	}

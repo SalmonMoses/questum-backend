@@ -6,7 +6,7 @@ import lombok.Value;
 import java.util.List;
 
 @Value
-public class GroupOwnerDetails {
+public class GroupOwnerPrincipal {
 	@NonNull
 	String email;
 
