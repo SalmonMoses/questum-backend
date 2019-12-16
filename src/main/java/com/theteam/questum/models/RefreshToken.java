@@ -10,7 +10,7 @@ import java.sql.Timestamp;
 @Table(name = "refresh_tokens")
 public class RefreshToken {
 	@Id
-	@GeneratedValue
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
 	@Column(name = "refresh_token")

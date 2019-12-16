@@ -1,6 +1,5 @@
 package com.theteam.questum.controllers;
 
-import com.theteam.questum.dto.QuestGroupDTO;
 import com.theteam.questum.dto.QuestGroupOwnerDTO;
 import com.theteam.questum.models.AuthToken;
 import com.theteam.questum.models.GroupOwner;
@@ -12,7 +11,6 @@ import com.theteam.questum.responses.OwnerLoginResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -39,7 +37,7 @@ public class LoginController {
 	}
 
 	@PostMapping("/login/admin")
-	@PreAuthorize("permitAll()")
+//	@PreAuthorize("permitAll()")
 	public ResponseEntity<OwnerLoginResponse> login(@RequestBody LoginRequest req) {
 		if (req.getRefreshToken() != null) {
 			// TODO: implement auth with refresh token
@@ -53,10 +51,17 @@ public class LoginController {
 				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 			}
 			Optional<AuthToken> token = tokens.findByOwnerAndType(owner.get().getId(), "ADMIN");
-			if (token.isEmpty() || token.get().getExpirationDate().getTime() < System.currentTimeMillis()) {
+			if (token.isEmpty()) {
+				return ResponseEntity.ok(getOwnerLoginResponse(owner.get()));
+			} else if (token.get().getExpirationDate().getTime() < System.currentTimeMillis()) {
+				tokens.delete(token.get());
 				return ResponseEntity.ok(getOwnerLoginResponse(owner.get()));
 			} else {
-				return ResponseEntity.ok(new OwnerLoginResponse(token.get().getToken(), QuestGroupOwnerDTO.of(owner.get())));
+				ResponseEntity<OwnerLoginResponse> res = ResponseEntity.ok(new OwnerLoginResponse(token.get()
+				                                                                                       .getToken(),
+				                                                                                  QuestGroupOwnerDTO
+						                                                                                  .of(owner.get())));
+				return res;
 			}
 		} else {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
@@ -70,6 +75,7 @@ public class LoginController {
 		newToken.setToken(uuid);
 		newToken.setOwner(owner.getId());
 		newToken.setExpirationDate(expirationDate);
+		newToken.setType("ADMIN");
 		tokens.save(newToken);
 		QuestGroupOwnerDTO dto = QuestGroupOwnerDTO.of(owner);
 		return new OwnerLoginResponse(uuid, dto);

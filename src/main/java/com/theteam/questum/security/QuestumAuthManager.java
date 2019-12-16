@@ -6,6 +6,7 @@ import com.theteam.questum.models.QuestGroup;
 import com.theteam.questum.repositories.TokenRepository;
 import com.theteam.questum.services.QuestumAuthService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -13,6 +14,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationDetails;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +34,7 @@ public class QuestumAuthManager implements AuthenticationManager {
 		String tokenString = ((OAuth2AuthenticationDetails) authentication.getDetails()).getTokenValue();
 		Optional<AuthToken> token = tokens.findByToken(tokenString);
 		if (token.isEmpty()) {
-			return null;
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
 		}
 		switch (token.get().getType()) {
 			case "ADMIN": {

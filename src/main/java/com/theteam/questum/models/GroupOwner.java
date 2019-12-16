@@ -12,7 +12,7 @@ import java.util.List;
 @Data
 public class GroupOwner {
 	@Id
-	@GeneratedValue
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private long id;
 
 	@NonNull

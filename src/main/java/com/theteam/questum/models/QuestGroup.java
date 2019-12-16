@@ -10,7 +10,7 @@ import javax.persistence.*;
 @Data
 public class QuestGroup {
 	@Id
-	@GeneratedValue
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private long id;
 
 	@NonNull
