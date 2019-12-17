@@ -6,5 +6,6 @@ import lombok.Value;
 @Value
 public class OwnerLoginResponse {
 	String token;
+	String refreshToken;
 	QuestGroupOwnerDTO owner;
 }

@@ -60,7 +60,7 @@ public class SignupController {
 		newToken.setType("ADMIN");
 		tokens.save(newToken);
 		QuestGroupOwnerDTO dto = QuestGroupOwnerDTO.of(owner);
-		OwnerSignupResponse res = new OwnerSignupResponse(uuid, dto, "");
+		OwnerSignupResponse res = new OwnerSignupResponse(uuid, "", dto, "");
 		return new ResponseEntity(res, HttpStatus.CREATED);
 	}
 }
