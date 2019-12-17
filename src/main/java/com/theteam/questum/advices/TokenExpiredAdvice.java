@@ -14,10 +14,5 @@ import java.net.http.HttpResponse;
 
 @ControllerAdvice
 public class TokenExpiredAdvice {
-	@ResponseBody
-	@ExceptionHandler(TokenExpiredException.class)
-	@ResponseStatus(HttpStatus.UNAUTHORIZED)
-	ResponseEntity<String> tokenHasExpiredHandler(TokenExpiredException ex) {
-		return new ResponseEntity(ex.getMessage(), HttpStatus.UNAUTHORIZED);
-	}
+
 }

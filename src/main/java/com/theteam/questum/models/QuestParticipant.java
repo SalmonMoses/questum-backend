@@ -1,6 +1,7 @@
 package com.theteam.questum.models;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.NonNull;
 
 import javax.persistence.*;
@@ -8,6 +9,7 @@ import javax.persistence.*;
 @Data
 @Entity
 @Table(name = "participants")
+@NoArgsConstructor
 public class QuestParticipant {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)

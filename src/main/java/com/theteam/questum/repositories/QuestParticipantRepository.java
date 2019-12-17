@@ -7,7 +7,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface QuestParticipantRepository extends JpaRepository<QuestParticipant, Long> {
-	public List<QuestParticipant> findByIdAndGroup_Id(long id, long groupId);
+	public boolean existsByEmailAndGroup_Id(String email, long id);
+	public List<QuestParticipant> findByEmailAndGroup_Id(String email, long groupId);
 	public List<QuestParticipant> findAllByGroup_Id(Long groupId);
 	public Optional<QuestParticipant> findByEmailAndGroup_Id(String email, Long groupId);
 }
