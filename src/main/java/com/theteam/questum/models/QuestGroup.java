@@ -4,13 +4,14 @@ import lombok.Data;
 import lombok.NonNull;
 
 import javax.persistence.*;
+import java.util.List;
 
 @Entity
-@Table(name = "groups")
+@Table(name = "quest_groups")
 @Data
-public class Group {
+public class QuestGroup {
 	@Id
-	@GeneratedValue
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private long id;
 
 	@NonNull
@@ -22,7 +23,11 @@ public class Group {
 	@JoinColumn(name = "owner_id")
 	private GroupOwner owner;
 
-	public Group() {
+	@NonNull
+	@OneToMany(fetch = FetchType.LAZY)
+	private List<QuestParticipant> participants;
+
+	public QuestGroup() {
 
 	}
 }

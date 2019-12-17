@@ -6,7 +6,10 @@ import lombok.NonNull;
 
 @Data
 @NoArgsConstructor
-public class CreateGroupRequest {
+public class AddParticipantRequest {
 	@NonNull
-	String name = "";
+	String email;
+
+	@NonNull
+	String name;
 }

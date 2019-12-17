@@ -2,6 +2,7 @@ package com.theteam.questum.models;
 
 import lombok.Data;
 import lombok.NonNull;
+import lombok.ToString;
 
 import javax.persistence.*;
 import java.util.List;
@@ -11,7 +12,7 @@ import java.util.List;
 @Data
 public class GroupOwner {
 	@Id
-	@GeneratedValue
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private long id;
 
 	@NonNull
@@ -22,8 +23,13 @@ public class GroupOwner {
 	@Column(name = "email")
 	private String email;
 
-	@OneToMany(fetch = FetchType.LAZY)
-	private List<Group> groups;
+	@NonNull
+	@Column(name = "password")
+	private String password;
+
+	@OneToMany(fetch = FetchType.EAGER, mappedBy = "owner")
+	@ToString.Exclude
+	private List<QuestGroup> questGroups;
 
 	public GroupOwner() {
 	}
