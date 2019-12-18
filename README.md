@@ -1,2 +1,3 @@
-Вся документация и все примеры здесь: [![Run in Postman](https://run.pstmn.io/button.svg)](https://app.getpostman.com/run-collection/e99ce142c859941dacc5)    
-Позже напишу здесь же ToDo список, что уже готово, а что нет. И да, мне лень нормально писать документацию, так что юзайте Postman. Лишним он вам все равно не будет ;)
+Вся документация и все(почти) примеры [здесь][https://documenter.getpostman.com/view/8084138/SWECYFfz]
+
+[https://documenter.getpostman.com/view/8084138/SWECYFfz]: https://documenter.getpostman.com/view/8084138/SWECYFfz
