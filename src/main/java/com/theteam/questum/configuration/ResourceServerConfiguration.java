@@ -28,10 +28,7 @@ public class ResourceServerConfiguration extends ResourceServerConfigurerAdapter
 		    .antMatchers("/login/**", "/check/**", "/signup/**")
 		    .permitAll()
 		    .and()
-		    .authorizeRequests()
-		    .antMatchers("/groups/all/**")
-		    .permitAll()
-		    .and().authorizeRequests().anyRequest().authenticated();
+		    .authorizeRequests().anyRequest().authenticated();
 	}
 
 	@Override

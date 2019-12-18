@@ -6,7 +6,7 @@ import lombok.Value;
 
 @Value
 @Builder
-public class CheckResponse {
+public class GroupCheckResponse {
 	@NonNull
 	String type;
 

@@ -21,11 +21,15 @@ public class QuestGroup {
 	@NonNull
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "owner_id")
-	private GroupOwner owner;
+	private QuestGroupOwner owner;
 
 	@NonNull
 	@OneToMany(fetch = FetchType.LAZY)
 	private List<QuestParticipant> participants;
+
+	@NonNull
+	@OneToMany(fetch = FetchType.LAZY)
+	private List<Quest> quests;
 
 	public QuestGroup() {
 

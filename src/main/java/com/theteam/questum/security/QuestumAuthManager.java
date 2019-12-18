@@ -37,10 +37,10 @@ public class QuestumAuthManager implements AuthenticationManager {
 			throw new TokenExpiredException(token.get().getToken());
 		}
 		switch (token.get().getType()) {
-			case "ADMIN": {
+			case "OWNER": {
 				GroupOwnerPrincipal details = authService.handleOwnerLogin(token.get());
 				ArrayList<SimpleGrantedAuthority> authorities = new ArrayList<>();
-				authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
+				authorities.add(new SimpleGrantedAuthority("ROLE_OWNER"));
 				return new UsernamePasswordAuthenticationToken(details, token.get(),
 				                                               authorities);
 			}

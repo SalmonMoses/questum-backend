@@ -2,9 +2,9 @@ package com.theteam.questum.controllers;
 
 import com.theteam.questum.dto.QuestGroupOwnerDTO;
 import com.theteam.questum.models.AuthToken;
-import com.theteam.questum.models.GroupOwner;
+import com.theteam.questum.models.QuestGroupOwner;
 import com.theteam.questum.models.RefreshToken;
-import com.theteam.questum.repositories.GroupOwnersRepository;
+import com.theteam.questum.repositories.GroupOwnerRepository;
 import com.theteam.questum.repositories.GroupRepository;
 import com.theteam.questum.repositories.RefreshTokenRepository;
 import com.theteam.questum.repositories.TokenRepository;
@@ -29,13 +29,13 @@ public class SignupController {
 	@Autowired
 	private final GroupRepository groups;
 	@Autowired
-	private final GroupOwnersRepository owners;
+	private final GroupOwnerRepository owners;
 	@Autowired
 	private final TokenRepository tokens;
 	@Autowired
 	private final RefreshTokenRepository refreshTokens;
 
-	public SignupController(GroupRepository groups, GroupOwnersRepository owners, TokenRepository tokens,
+	public SignupController(GroupRepository groups, GroupOwnerRepository owners, TokenRepository tokens,
 	                        RefreshTokenRepository refreshTokens) {
 		this.groups = groups;
 		this.owners = owners;
@@ -52,7 +52,7 @@ public class SignupController {
 			OwnerSignupResponse res = OwnerSignupResponse.ofError("Email is already taken!");
 			return new ResponseEntity<>(res, HttpStatus.CONFLICT);
 		}
-		GroupOwner owner = new GroupOwner();
+		QuestGroupOwner owner = new QuestGroupOwner();
 		owner.setEmail(email);
 		owner.setName(name);
 		owner.setPassword(password);
@@ -63,7 +63,7 @@ public class SignupController {
 		newToken.setToken(token);
 		newToken.setOwner(owner.getId());
 		newToken.setExpirationDate(expirationDate);
-		newToken.setType("ADMIN");
+		newToken.setType("OWNER");
 		tokens.save(newToken);
 		String refreshTokenStr = UUID.randomUUID().toString();
 		Timestamp refreshExpirationDate = Timestamp.from(Instant.now().plus(30, ChronoUnit.DAYS));
@@ -71,10 +71,10 @@ public class SignupController {
 		refreshToken.setRefreshToken(refreshTokenStr);
 		refreshToken.setOwner(owner.getId());
 		refreshToken.setExpirationDate(refreshExpirationDate);
-		refreshToken.setType("ADMIN");
+		refreshToken.setType("OWNER");
 		refreshTokens.save(refreshToken);
 		QuestGroupOwnerDTO dto = QuestGroupOwnerDTO.of(owner);
 		OwnerSignupResponse res = new OwnerSignupResponse(token, refreshTokenStr, dto, "");
-		return new ResponseEntity(res, HttpStatus.CREATED);
+		return new ResponseEntity<>(res, HttpStatus.CREATED);
 	}
 }
