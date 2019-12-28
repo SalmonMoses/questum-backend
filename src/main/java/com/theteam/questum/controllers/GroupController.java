@@ -14,6 +14,7 @@ import com.theteam.questum.repositories.QuestParticipantRepository;
 import com.theteam.questum.repositories.QuestRepository;
 import com.theteam.questum.requests.AddParticipantRequest;
 import com.theteam.questum.requests.AddQuestRequest;
+import com.theteam.questum.requests.ChangeGroupRequest;
 import com.theteam.questum.requests.CreateGroupRequest;
 import com.theteam.questum.security.GroupOwnerPrincipal;
 import com.theteam.questum.services.SHA512Service;
@@ -32,7 +33,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/groups")
-public class GroupsRestController {
+public class GroupController {
 	@Autowired
 	private final GroupRepository groups;
 	@Autowired
@@ -45,8 +46,8 @@ public class GroupsRestController {
 	private final SHA512Service encrypter;
 	private final Random randomGen = new Random();
 
-	GroupsRestController(GroupRepository groups, GroupOwnerRepository owners,
-	                     QuestParticipantRepository participants, QuestRepository quests, SHA512Service encrypter) {
+	GroupController(GroupRepository groups, GroupOwnerRepository owners,
+	                QuestParticipantRepository participants, QuestRepository quests, SHA512Service encrypter) {
 		this.groups = groups;
 		this.owners = owners;
 		this.participants = participants;
@@ -81,6 +82,24 @@ public class GroupsRestController {
 				.map(QuestGroupDTO::of)
 				.map(ResponseEntity::ok)
 				.orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+	}
+
+	@PutMapping("/{id}")
+	public ResponseEntity<QuestGroupDTO> changeById(@PathVariable Long id, @RequestBody ChangeGroupRequest req,
+	                                                Authentication auth) {
+		String ownerEmail = ((GroupOwnerPrincipal) auth.getPrincipal()).getEmail();
+		Optional<QuestGroup> group = groups.findById(id);
+		if (group.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		if (!group.get().getOwner().getEmail().equals(ownerEmail)) {
+			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+		}
+		group.get().setName(req.getName());
+		groups.save(group.get());
+		return group.map(QuestGroupDTO::of)
+		     .map(ResponseEntity::ok)
+		     .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
 	}
 
 	@GetMapping("/{id}/admin")
@@ -125,8 +144,7 @@ public class GroupsRestController {
 		participant.setGroup(group.get());
 		participant.setPoints(0);
 		int passwordNum = randomGen.nextInt(10000) + 1000;
-		String passwordDecrypt = Integer.toString(passwordNum) + participant.getEmail();
-		String passwordEncrypt = encrypter.encrypt(passwordDecrypt);
+		String passwordEncrypt = encrypter.saltAndEncrypt(req.getEmail(), Integer.toString(passwordNum));
 		participant.setPassword(passwordEncrypt);
 		participants.save(participant);
 		return new ResponseEntity(QuestParticipantDTO.of(participant), HttpStatus.CREATED);
@@ -164,7 +182,7 @@ public class GroupsRestController {
 		if (group.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
-		if(!group.get().getOwner().equals(owner.get())) {
+		if (!group.get().getOwner().equals(owner.get())) {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
 		Quest quest = new Quest();

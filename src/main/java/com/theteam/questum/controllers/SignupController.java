@@ -10,6 +10,7 @@ import com.theteam.questum.repositories.RefreshTokenRepository;
 import com.theteam.questum.repositories.TokenRepository;
 import com.theteam.questum.requests.SignupRequest;
 import com.theteam.questum.responses.OwnerSignupResponse;
+import com.theteam.questum.services.SHA512Service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,21 +35,24 @@ public class SignupController {
 	private final TokenRepository tokens;
 	@Autowired
 	private final RefreshTokenRepository refreshTokens;
+	@Autowired
+	private final SHA512Service encryptor;
 
 	public SignupController(GroupRepository groups, GroupOwnerRepository owners, TokenRepository tokens,
-	                        RefreshTokenRepository refreshTokens) {
+	                        RefreshTokenRepository refreshTokens, SHA512Service encryptor) {
 		this.groups = groups;
 		this.owners = owners;
 		this.tokens = tokens;
 		this.refreshTokens = refreshTokens;
+		this.encryptor = encryptor;
 	}
 
-	@PostMapping("/admin")
+	@PostMapping("/owner")
 	public ResponseEntity<OwnerSignupResponse> signup(@RequestBody SignupRequest req) {
 		String email = req.getEmail();
 		String name = req.getName();
-		String password = req.getPassword();
-		if(owners.findByEmail(req.getEmail()).isPresent()) {
+		String password = encryptor.saltAndEncrypt(req.getEmail(), req.getPassword());
+		if(owners.existsByEmail(req.getEmail())) {
 			OwnerSignupResponse res = OwnerSignupResponse.ofError("Email is already taken!");
 			return new ResponseEntity<>(res, HttpStatus.CONFLICT);
 		}

@@ -10,6 +10,8 @@ import com.theteam.questum.repositories.RefreshTokenRepository;
 import com.theteam.questum.repositories.TokenRepository;
 import com.theteam.questum.requests.OwnerLoginRequest;
 import com.theteam.questum.responses.OwnerLoginResponse;
+import com.theteam.questum.services.SHA512Service;
+import lombok.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -35,17 +37,19 @@ public class LoginController {
 	private final TokenRepository tokens;
 	@Autowired
 	private final RefreshTokenRepository refreshTokens;
+	@Autowired
+	private final SHA512Service encryptor;
 
 	public LoginController(GroupRepository groups, GroupOwnerRepository owners, TokenRepository tokens,
-	                       RefreshTokenRepository refreshTokens) {
+	                       RefreshTokenRepository refreshTokens, SHA512Service encryptor) {
 		this.groups = groups;
 		this.owners = owners;
 		this.tokens = tokens;
 		this.refreshTokens = refreshTokens;
+		this.encryptor = encryptor;
 	}
 
 	@PostMapping("/owner")
-//	@PreAuthorize("permitAll()")
 	public ResponseEntity<OwnerLoginResponse> groupOwnerLogin(@RequestBody OwnerLoginRequest req) {
 		if (req.getRefreshToken() != null) {
 			Optional<RefreshToken> refTok = refreshTokens.findByRefreshToken(req.getRefreshToken());
@@ -58,12 +62,13 @@ public class LoginController {
 			Optional<QuestGroupOwner> owner = owners.findById(refTok.get().getOwner());
 			return owner.map(own -> ResponseEntity.ok(getOwnerLoginResponse(owner.get())))
 			            .orElseGet(() -> new ResponseEntity<>(HttpStatus.UNAUTHORIZED));
-		} else if (!req.getEmail().equals("") && !req.getPassword().equals("")) {
+		} else if (!req.getEmail().equals("")) {
 			Optional<QuestGroupOwner> owner = owners.findByEmail(req.getEmail());
 			if (owner.isEmpty()) {
 				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 			}
-			if (!owner.get().getPassword().equals(req.getPassword())) {
+			@NonNull String password = encryptor.saltAndEncrypt(req.getEmail(), req.getPassword());
+			if (!password.equals(owner.get().getPassword())) {
 				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 			}
 			return ResponseEntity.ok(getOwnerLoginResponse(owner.get()));
