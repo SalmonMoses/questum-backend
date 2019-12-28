@@ -38,4 +38,8 @@ public class SHA512Service {
 			throw new RuntimeException(e);
 		}
 	}
+
+	public String saltAndEncrypt(String email, String password) {
+		return encrypt(password + email);
+	}
 }

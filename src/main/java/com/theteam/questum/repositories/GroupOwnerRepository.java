@@ -7,4 +7,5 @@ import java.util.Optional;
 
 public interface GroupOwnerRepository extends JpaRepository<QuestGroupOwner, Long> {
 	public Optional<QuestGroupOwner> findByEmail(String email);
+	public boolean existsByEmail(String email);
 }
