@@ -10,7 +10,7 @@ import java.util.List;
 @Entity
 @Table(name = "owners")
 @Data
-public class GroupOwner {
+public class QuestGroupOwner {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private long id;
@@ -31,6 +31,6 @@ public class GroupOwner {
 	@ToString.Exclude
 	private List<QuestGroup> questGroups;
 
-	public GroupOwner() {
+	public QuestGroupOwner() {
 	}
 }

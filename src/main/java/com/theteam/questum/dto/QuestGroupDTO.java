@@ -7,10 +7,15 @@ import lombok.Value;
 @Value
 @Builder
 public class QuestGroupDTO {
+	long id;
 	String name;
-	String ownerEmail;
+	QuestGroupOwnerDTO owner;
 
 	public static QuestGroupDTO of(QuestGroup group) {
-		return QuestGroupDTO.builder().name(group.getName()).ownerEmail(group.getOwner().getEmail()).build();
+		return QuestGroupDTO.builder()
+		                    .id(group.getId())
+		                    .name(group.getName())
+		                    .owner(QuestGroupOwnerDTO.of(group.getOwner()))
+		                    .build();
 	}
 }
