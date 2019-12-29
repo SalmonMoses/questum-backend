@@ -2,7 +2,6 @@ package com.theteam.questum.controllers;
 
 import com.theteam.questum.dto.QuestGroupDTO;
 import com.theteam.questum.dto.QuestGroupOwnerDTO;
-import com.theteam.questum.models.QuestGroup;
 import com.theteam.questum.models.QuestGroupOwner;
 import com.theteam.questum.repositories.GroupOwnerRepository;
 import com.theteam.questum.repositories.GroupRepository;
