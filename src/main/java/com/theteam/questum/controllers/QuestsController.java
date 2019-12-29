@@ -8,6 +8,7 @@ import com.theteam.questum.repositories.GroupOwnerRepository;
 import com.theteam.questum.repositories.GroupRepository;
 import com.theteam.questum.repositories.QuestRepository;
 import com.theteam.questum.requests.AddQuestRequest;
+import com.theteam.questum.requests.ChangeQuestRequest;
 import com.theteam.questum.security.GroupOwnerPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -15,7 +16,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.function.EntityResponse;
 
+import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -64,6 +67,70 @@ public class QuestsController {
 		quest.setDesc(req.getDesc());
 		quest.setGroup(group.get());
 		quests.save(quest);
+		return new ResponseEntity<QuestDTO>(QuestDTO.of(quest), HttpStatus.CREATED);
+	}
+
+	@GetMapping("/{quest_id}")
+	public ResponseEntity<QuestDTO> getQuestById(@PathVariable("id") long groupId,
+	                                             @PathVariable("quest_id") long questId, Authentication auth) {
+		String ownerEmail = ((GroupOwnerPrincipal) auth.getPrincipal()).getEmail();
+		Optional<QuestGroupOwner> owner = owners.findByEmail(ownerEmail);
+		Optional<QuestGroup> group = groups.findById(groupId);
+		if (group.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		if (!group.get().getOwner().equals(owner.get())) {
+			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+		}
+		Optional<Quest> questOpt = quests.findByIdAndGroup_Id(questId, groupId);
+		if (questOpt.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		return ResponseEntity.ok(QuestDTO.of(questOpt.get()));
+	}
+
+	@PutMapping("/{quest_id}")
+	public ResponseEntity<QuestDTO> changeQuest(@PathVariable("id") long groupId,
+	                                            @PathVariable("quest_id") long questId,
+	                                            @RequestBody ChangeQuestRequest req, Authentication auth) {
+		String ownerEmail = ((GroupOwnerPrincipal) auth.getPrincipal()).getEmail();
+		Optional<QuestGroupOwner> owner = owners.findByEmail(ownerEmail);
+		Optional<QuestGroup> group = groups.findById(groupId);
+		if (group.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		if (!group.get().getOwner().equals(owner.get())) {
+			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+		}
+		Optional<Quest> questOpt = quests.findByIdAndGroup_Id(questId, groupId);
+		if (questOpt.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		Quest quest = questOpt.get();
+		if(req.getTitle() != null) quest.setTitle(req.getTitle());
+		if(req.getDesc() != null) quest.setDesc(req.getDesc());
+		quests.save(quest);
 		return ResponseEntity.ok(QuestDTO.of(quest));
+	}
+
+	@DeleteMapping("/{quest_id}")
+	@PreAuthorize("hasRole('ROLE_OWNER')")
+	public ResponseEntity<?> deleteQuestById(@PathVariable("id") long groupId,
+	                                             @PathVariable("quest_id") long questId, Authentication auth) {
+		String ownerEmail = ((GroupOwnerPrincipal) auth.getPrincipal()).getEmail();
+		Optional<QuestGroupOwner> owner = owners.findByEmail(ownerEmail);
+		Optional<QuestGroup> group = groups.findById(groupId);
+		if (group.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		if (!group.get().getOwner().equals(owner.get())) {
+			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+		}
+		Optional<Quest> questOpt = quests.findByIdAndGroup_Id(questId, groupId);
+		if (questOpt.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		quests.delete(questOpt.get());
+		return new ResponseEntity<>(HttpStatus.OK);
 	}
 }

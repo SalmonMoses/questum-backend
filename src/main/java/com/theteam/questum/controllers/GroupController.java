@@ -71,6 +71,7 @@ public class GroupController {
 	}
 
 	@PutMapping("/{id}")
+	@PreAuthorize("hasRole('ROLE_OWNER')")
 	public ResponseEntity<QuestGroupDTO> changeById(@PathVariable Long id, @RequestBody ChangeGroupRequest req,
 	                                                Authentication auth) {
 		String ownerEmail = ((GroupOwnerPrincipal) auth.getPrincipal()).getEmail();
@@ -86,6 +87,21 @@ public class GroupController {
 		return group.map(QuestGroupDTO::of)
 		     .map(ResponseEntity::ok)
 		     .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+	}
+
+	@DeleteMapping("/{id}")
+	@PreAuthorize("hasRole('ROLE_OWNER')")
+	public ResponseEntity<?> deleteById(@PathVariable long id, Authentication auth) {
+		String ownerEmail = ((GroupOwnerPrincipal) auth.getPrincipal()).getEmail();
+		Optional<QuestGroup> group = groups.findById(id);
+		if (group.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		if (!group.get().getOwner().getEmail().equals(ownerEmail)) {
+			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+		}
+		groups.delete(group.get());
+		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
 	@GetMapping("/{id}/admin")

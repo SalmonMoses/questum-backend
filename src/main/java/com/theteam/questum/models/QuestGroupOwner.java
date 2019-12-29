@@ -27,7 +27,7 @@ public class QuestGroupOwner {
 	@Column(name = "password")
 	private String password;
 
-	@OneToMany(fetch = FetchType.EAGER, mappedBy = "owner")
+	@OneToMany(fetch = FetchType.EAGER, mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
 	@ToString.Exclude
 	private List<QuestGroup> questGroups;
 

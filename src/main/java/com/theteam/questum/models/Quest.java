@@ -30,7 +30,7 @@ public class Quest {
 	private QuestGroup group;
 
 	@NonNull
-	@OneToMany(fetch = FetchType.LAZY, mappedBy = "parentQuest")
+	@OneToMany(fetch = FetchType.LAZY, mappedBy = "parentQuest", cascade = CascadeType.ALL, orphanRemoval = true)
 	@OrderBy("order")
 	private List<Subquest> subquests;
 }
