@@ -1,7 +1,6 @@
 package com.theteam.questum.models;
 
 import lombok.Data;
-import lombok.NonNull;
 
 import javax.persistence.*;
 import java.sql.Timestamp;

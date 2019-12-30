@@ -1,8 +1,8 @@
 package com.theteam.questum.services;
 
 import com.theteam.questum.models.AuthToken;
-import com.theteam.questum.models.QuestGroupOwner;
 import com.theteam.questum.models.QuestGroup;
+import com.theteam.questum.models.QuestGroupOwner;
 import com.theteam.questum.repositories.GroupOwnerRepository;
 import com.theteam.questum.security.GroupOwnerPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;

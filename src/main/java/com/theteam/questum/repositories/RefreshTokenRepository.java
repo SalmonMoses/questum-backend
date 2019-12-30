@@ -1,6 +1,5 @@
 package com.theteam.questum.repositories;
 
-import com.theteam.questum.models.AuthToken;
 import com.theteam.questum.models.RefreshToken;
 import org.springframework.data.jpa.repository.JpaRepository;
 

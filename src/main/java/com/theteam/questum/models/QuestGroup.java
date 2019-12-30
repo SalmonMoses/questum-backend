@@ -24,11 +24,11 @@ public class QuestGroup {
 	private QuestGroupOwner owner;
 
 	@NonNull
-	@OneToMany(fetch = FetchType.LAZY)
+	@OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true, mappedBy = "group")
 	private List<QuestParticipant> participants;
 
 	@NonNull
-	@OneToMany(fetch = FetchType.LAZY)
+	@OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true, mappedBy = "group")
 	private List<Quest> quests;
 
 	public QuestGroup() {

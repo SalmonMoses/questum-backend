@@ -5,13 +5,12 @@ import lombok.NoArgsConstructor;
 import lombok.NonNull;
 
 import javax.persistence.*;
-import java.util.List;
 
-@Entity
 @Data
-@Table(name = "quests")
+@Entity
+@Table(name = "subquests")
 @NoArgsConstructor
-public class Quest {
+public class Subquest {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
@@ -22,15 +21,18 @@ public class Quest {
 
 	@NonNull
 	@Column(name = "description")
-	private String desc;
+	private String description;
 
 	@NonNull
-	@JoinColumn(name = "group_id", referencedColumnName = "id")
-	@ManyToOne
-	private QuestGroup group;
+	@Column(name = "verification_type")
+	private String verificationType;
 
 	@NonNull
-	@OneToMany(fetch = FetchType.LAZY, mappedBy = "parentQuest", cascade = CascadeType.ALL, orphanRemoval = true)
-	@OrderBy("order")
-	private List<Subquest> subquests;
+	@Column(name = "order_num")
+	private Long order;
+
+	@NonNull
+	@JoinColumn(name = "quest_id", referencedColumnName = "id")
+	@ManyToOne(fetch = FetchType.EAGER)
+	private Quest parentQuest;
 }
