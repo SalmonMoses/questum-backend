@@ -1,6 +1,7 @@
 package com.theteam.questum.models;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.NonNull;
 
 import javax.persistence.*;
@@ -9,6 +10,7 @@ import java.util.List;
 @Entity
 @Table(name = "quest_groups")
 @Data
+@NoArgsConstructor
 public class QuestGroup {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,7 +33,8 @@ public class QuestGroup {
 	@OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true, mappedBy = "group")
 	private List<Quest> quests;
 
-	public QuestGroup() {
-
+	@PreRemove
+	private void onRemove() {
+		owner.getQuestGroups().remove(this);
 	}
 }
