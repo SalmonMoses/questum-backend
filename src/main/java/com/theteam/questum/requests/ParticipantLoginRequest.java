@@ -3,8 +3,9 @@ package com.theteam.questum.requests;
 import lombok.Value;
 
 @Value
-public class OwnerLoginRequest {
+public class ParticipantLoginRequest {
 	String refreshToken;
+	Long groupId;
 	String email;
 	String password;
 }
