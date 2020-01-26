@@ -4,12 +4,15 @@ import com.theteam.questerium.dto.QuestDTO;
 import com.theteam.questerium.models.Quest;
 import com.theteam.questerium.models.QuestGroup;
 import com.theteam.questerium.models.QuestGroupOwner;
+import com.theteam.questerium.models.QuestParticipant;
 import com.theteam.questerium.repositories.GroupOwnerRepository;
 import com.theteam.questerium.repositories.GroupRepository;
+import com.theteam.questerium.repositories.QuestParticipantRepository;
 import com.theteam.questerium.repositories.QuestRepository;
 import com.theteam.questerium.requests.AddQuestRequest;
 import com.theteam.questerium.requests.ChangeQuestRequest;
 import com.theteam.questerium.security.GroupOwnerPrincipal;
+import com.theteam.questerium.security.ParticipantPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +25,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/groups/{id}/quests")
 public class QuestsController {
 	@Autowired
 	private final GroupRepository groups;
@@ -30,24 +32,42 @@ public class QuestsController {
 	private final GroupOwnerRepository owners;
 	@Autowired
 	private final QuestRepository quests;
+	@Autowired
+	private final QuestParticipantRepository users;
 
 	public QuestsController(GroupRepository groups, GroupOwnerRepository owners,
-	                        QuestRepository quests) {
+	                        QuestRepository quests, QuestParticipantRepository users) {
 		this.groups = groups;
 		this.owners = owners;
 		this.quests = quests;
+		this.users = users;
 	}
 
-	@GetMapping
-	public ResponseEntity<List<QuestDTO>> getGroupsQuests(@PathVariable long id) {
+	@GetMapping("/groups/{id}/quests")
+	public ResponseEntity<List<QuestDTO>> getGroupsQuests(@PathVariable long id, Authentication auth) {
+		Object principal = auth.getPrincipal();
 		Optional<QuestGroup> group = groups.findById(id);
 		if (group.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
+		// TODO: refactor with pattern matching in Java 14
+		if(principal instanceof GroupOwnerPrincipal) {
+			String ownerEmail = ((GroupOwnerPrincipal) principal).getEmail();
+			Optional<QuestGroupOwner> owner = owners.findByEmail(ownerEmail);
+			if(!owner.get().getQuestGroups().contains(group.get())) {
+				return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+			}
+		} else if (principal instanceof ParticipantPrincipal) {
+			String userEmail = ((ParticipantPrincipal) principal).getEmail();
+			Optional<QuestParticipant> maybeUser = users.findByEmailAndGroup_Id(userEmail, group.get().getId());
+			if(maybeUser.isEmpty()) {
+				return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+			}
+		}
 		return ResponseEntity.ok(quests.findAllByGroup_Id(id).stream().map(QuestDTO::of).collect(Collectors.toList()));
 	}
 
-	@PostMapping
+	@PostMapping("/groups/{id}/quests")
 	@PreAuthorize("hasRole('ROLE_OWNER')")
 	public ResponseEntity<QuestDTO> addQuest(@PathVariable long id, @RequestBody AddQuestRequest req,
 	                                         Authentication auth) {
@@ -68,65 +88,65 @@ public class QuestsController {
 		return new ResponseEntity<QuestDTO>(QuestDTO.of(quest), HttpStatus.CREATED);
 	}
 
-	@GetMapping("/{quest_id}")
-	public ResponseEntity<QuestDTO> getQuestById(@PathVariable("id") long groupId,
-	                                             @PathVariable("quest_id") long questId, Authentication auth) {
-		String ownerEmail = ((GroupOwnerPrincipal) auth.getPrincipal()).getEmail();
-		Optional<QuestGroupOwner> owner = owners.findByEmail(ownerEmail);
-		Optional<QuestGroup> group = groups.findById(groupId);
-		if (group.isEmpty()) {
-			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-		}
-		if (!group.get().getOwner().equals(owner.get())) {
-			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-		}
-		Optional<Quest> questOpt = quests.findByIdAndGroup_Id(questId, groupId);
+	@GetMapping("/quests/{quest_id}")
+	public ResponseEntity<QuestDTO> getQuestById(@PathVariable("quest_id") long questId, Authentication auth) {
+		Optional<Quest> questOpt = quests.findById(questId);
 		if (questOpt.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		Object principal = auth.getPrincipal();
+		// TODO: refactor with pattern matching in Java 14
+		if(principal instanceof GroupOwnerPrincipal) {
+			String ownerEmail = ((GroupOwnerPrincipal) principal).getEmail();
+			Optional<QuestGroupOwner> owner = owners.findByEmail(ownerEmail);
+			if(!owner.get().getQuestGroups().contains(questOpt.get().getGroup())) {
+				return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+			}
+		} else if (principal instanceof ParticipantPrincipal) {
+			String userEmail = ((ParticipantPrincipal) principal).getEmail();
+			Optional<QuestParticipant> maybeUser = users.findByEmailAndGroup_Id(userEmail, questOpt.get().getGroup().getId());
+			if(maybeUser.isEmpty()) {
+				return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+			}
 		}
 		return ResponseEntity.ok(QuestDTO.of(questOpt.get()));
 	}
 
-	@PutMapping("/{quest_id}")
-	public ResponseEntity<QuestDTO> changeQuest(@PathVariable("id") long groupId,
-	                                            @PathVariable("quest_id") long questId,
+	@PutMapping("/quests/{quest_id}")
+	@PreAuthorize("hasRole('ROLE_OWNER')")
+	public ResponseEntity<QuestDTO> changeQuest(@PathVariable("quest_id") long questId,
 	                                            @RequestBody ChangeQuestRequest req, Authentication auth) {
-		String ownerEmail = ((GroupOwnerPrincipal) auth.getPrincipal()).getEmail();
-		Optional<QuestGroupOwner> owner = owners.findByEmail(ownerEmail);
-		Optional<QuestGroup> group = groups.findById(groupId);
-		if (group.isEmpty()) {
-			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-		}
-		if (!group.get().getOwner().equals(owner.get())) {
-			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-		}
-		Optional<Quest> questOpt = quests.findByIdAndGroup_Id(questId, groupId);
+		Optional<Quest> questOpt = quests.findById(questId);
 		if (questOpt.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
+		String ownerEmail = ((GroupOwnerPrincipal) auth.getPrincipal()).getEmail();
+		Optional<QuestGroupOwner> owner = owners.findByEmail(ownerEmail);
+		if(!questOpt.get().getGroup().getOwner().equals(owner.get())) {
+			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+		}
 		Quest quest = questOpt.get();
-		if(req.getTitle() != null) quest.setTitle(req.getTitle());
-		if(req.getDesc() != null) quest.setDesc(req.getDesc());
+		if (req.getTitle() != null) {
+			quest.setTitle(req.getTitle());
+		}
+		if (req.getDesc() != null) {
+			quest.setDesc(req.getDesc());
+		}
 		quests.save(quest);
 		return ResponseEntity.ok(QuestDTO.of(quest));
 	}
 
-	@DeleteMapping("/{quest_id}")
+	@DeleteMapping("/quests/{quest_id}")
 	@PreAuthorize("hasRole('ROLE_OWNER')")
-	public ResponseEntity<?> deleteQuestById(@PathVariable("id") long groupId,
-	                                             @PathVariable("quest_id") long questId, Authentication auth) {
+	public ResponseEntity<?> deleteQuestById(@PathVariable("quest_id") long questId, Authentication auth) {
 		String ownerEmail = ((GroupOwnerPrincipal) auth.getPrincipal()).getEmail();
-		Optional<QuestGroupOwner> owner = owners.findByEmail(ownerEmail);
-		Optional<QuestGroup> group = groups.findById(groupId);
-		if (group.isEmpty()) {
-			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-		}
-		if (!group.get().getOwner().equals(owner.get())) {
-			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-		}
-		Optional<Quest> questOpt = quests.findByIdAndGroup_Id(questId, groupId);
+		Optional<Quest> questOpt = quests.findById(questId);
 		if (questOpt.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		Optional<QuestGroupOwner> owner = owners.findByEmail(ownerEmail);
+		if (!questOpt.get().getGroup().getOwner().equals(owner.get())) {
+			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
 		quests.delete(questOpt.get());
 		return new ResponseEntity<>(HttpStatus.OK);
