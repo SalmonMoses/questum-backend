@@ -7,8 +7,8 @@ import com.theteam.questerium.repositories.GroupRepository;
 import com.theteam.questerium.repositories.QuestParticipantRepository;
 import com.theteam.questerium.requests.AddParticipantRequest;
 import com.theteam.questerium.security.GroupOwnerPrincipal;
-import com.theteam.questerium.security.ParticipantPrincipal;
 import com.theteam.questerium.services.SHA512Service;
+import com.theteam.questerium.services.SecurityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,18 +24,22 @@ import java.util.stream.Collectors;
 @RestController
 public class ParticipantsController {
 	@Autowired
-	private QuestParticipantRepository participants;
+	private final QuestParticipantRepository participants;
 	@Autowired
-	private GroupRepository groups;
+	private final GroupRepository groups;
 	@Autowired
-	private SHA512Service encrypter;
+	private final SHA512Service encrypter;
+	@Autowired
+	private final SecurityService security;
+
 	private final Random randomGen = new Random();
 
 	public ParticipantsController(QuestParticipantRepository participants,
-	                              GroupRepository groups, SHA512Service encrypter) {
+	                              GroupRepository groups, SHA512Service encrypter, SecurityService security) {
 		this.participants = participants;
 		this.groups = groups;
 		this.encrypter = encrypter;
+		this.security = security;
 	}
 
 	@GetMapping("/groups/{id}/participants")
@@ -86,16 +90,8 @@ public class ParticipantsController {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
 		Object principal = auth.getPrincipal();
-		// TODO: refactor with pattern matching in Java 14
-		if(principal instanceof GroupOwnerPrincipal) {
-			String ownerEmail = ((GroupOwnerPrincipal) principal).getEmail();
-			if(participant.get().getGroup().getOwner().getEmail().equals(ownerEmail)) {
-				return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-			}
-		} else if(principal instanceof ParticipantPrincipal) {
-			if(((ParticipantPrincipal) principal).getGroup() != participant.get().getGroup().getId()) {
-				return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-			}
+		if(!security.hasAccessToTheGroup(principal, participant.get().getGroup())) {
+			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
 		return participant.map(QuestParticipantDTO::of).map(ResponseEntity::ok).get();
 	}

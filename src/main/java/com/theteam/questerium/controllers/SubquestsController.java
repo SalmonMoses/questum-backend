@@ -12,6 +12,7 @@ import com.theteam.questerium.repositories.SubquestRepository;
 import com.theteam.questerium.requests.AddSubquestRequest;
 import com.theteam.questerium.requests.ChangeSubquestRequest;
 import com.theteam.questerium.security.GroupOwnerPrincipal;
+import com.theteam.questerium.services.SecurityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,7 +25,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/groups/{group_id}/quests/{quest_id}/subquests")
+@RequestMapping
 public class SubquestsController {
 	@Autowired
 	private final GroupRepository groups;
@@ -34,18 +35,22 @@ public class SubquestsController {
 	private final QuestRepository quests;
 	@Autowired
 	private final SubquestRepository subquests;
+	@Autowired
+	private final SecurityService security;
 
 	public SubquestsController(GroupRepository groups, GroupOwnerRepository owners, QuestRepository quests,
-	                           SubquestRepository subquests) {
+	                           SubquestRepository subquests, SecurityService security) {
 		this.groups = groups;
 		this.owners = owners;
 		this.quests = quests;
 		this.subquests = subquests;
+		this.security = security;
 	}
 
-	@GetMapping
+	@GetMapping("/groups/{group_id}/quests/{quest_id}/subquests")
 	public ResponseEntity<List<SubquestDTO>> getAllSubquests(@PathVariable("group_id") long groupId, @PathVariable(
-			"quest_id") long questId) {
+			"quest_id") long questId, Authentication auth) {
+		Object principal = auth.getPrincipal();
 		Optional<QuestGroup> group = groups.findById(groupId);
 		if (group.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -54,10 +59,14 @@ public class SubquestsController {
 		if (quest.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
+		// TODO: refactor with pattern matching in Java 14
+		if (!security.hasAccessToTheGroup(principal, group.get())) {
+			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+		}
 		return ResponseEntity.ok(quest.get().getSubquests().stream().map(SubquestDTO::of).collect(Collectors.toList()));
 	}
 
-	@PostMapping
+	@PostMapping("/groups/{group_id}/quests/{quest_id}/subquests")
 	@PreAuthorize("hasRole('ROLE_OWNER')")
 	public ResponseEntity<SubquestDTO> addNewSubquest(@PathVariable("group_id") long groupId, @PathVariable(
 			"quest_id") long questId, @RequestBody AddSubquestRequest req, Authentication auth) {

@@ -32,7 +32,7 @@ public class LoginController {
 	@Autowired
 	private final GroupOwnerRepository owners;
 	@Autowired
-	private final QuestParticipantRepository users;
+	private final QuestParticipantRepository participants;
 	@Autowired
 	private final TokenRepository tokens;
 	@Autowired
@@ -40,12 +40,12 @@ public class LoginController {
 	@Autowired
 	private final SHA512Service encryptor;
 
-	public LoginController(GroupRepository groups, GroupOwnerRepository owners, QuestParticipantRepository users,
+	public LoginController(GroupRepository groups, GroupOwnerRepository owners, QuestParticipantRepository participants,
 	                       TokenRepository tokens,
 	                       RefreshTokenRepository refreshTokens, SHA512Service encryptor) {
 		this.groups = groups;
 		this.owners = owners;
-		this.users = users;
+		this.participants = participants;
 		this.tokens = tokens;
 		this.refreshTokens = refreshTokens;
 		this.encryptor = encryptor;
@@ -89,7 +89,7 @@ public class LoginController {
 			if (!refTok.get().getType().equals("USER")) {
 				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 			}
-			Optional<QuestParticipant> user = users.findById(refTok.get().getOwner());
+			Optional<QuestParticipant> user = participants.findById(refTok.get().getOwner());
 			return user.map(own -> ResponseEntity.ok(getParticipantLoginResponse(user.get())))
 			           .orElseGet(() -> new ResponseEntity<>(HttpStatus.UNAUTHORIZED));
 		} else if (!req.getEmail().equals("") && req.getGroupId() > 0) {
@@ -97,7 +97,7 @@ public class LoginController {
 			if(group.isEmpty()) {
 				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 			}
-			Optional<QuestParticipant> user = users.findByEmailAndGroup_Id(req.getEmail(), req.getGroupId());
+			Optional<QuestParticipant> user = participants.findByEmailAndGroup_Id(req.getEmail(), req.getGroupId());
 			if(user.isEmpty()) {
 				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 			}

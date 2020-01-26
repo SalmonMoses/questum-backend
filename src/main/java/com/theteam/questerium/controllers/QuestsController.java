@@ -13,6 +13,7 @@ import com.theteam.questerium.requests.AddQuestRequest;
 import com.theteam.questerium.requests.ChangeQuestRequest;
 import com.theteam.questerium.security.GroupOwnerPrincipal;
 import com.theteam.questerium.security.ParticipantPrincipal;
+import com.theteam.questerium.services.SecurityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,14 +34,17 @@ public class QuestsController {
 	@Autowired
 	private final QuestRepository quests;
 	@Autowired
-	private final QuestParticipantRepository users;
+	private final QuestParticipantRepository participants;
+	@Autowired
+	private final SecurityService security;
 
 	public QuestsController(GroupRepository groups, GroupOwnerRepository owners,
-	                        QuestRepository quests, QuestParticipantRepository users) {
+	                        QuestRepository quests, QuestParticipantRepository participants, SecurityService security) {
 		this.groups = groups;
 		this.owners = owners;
 		this.quests = quests;
-		this.users = users;
+		this.participants = participants;
+		this.security = security;
 	}
 
 	@GetMapping("/groups/{id}/quests")
@@ -51,18 +55,8 @@ public class QuestsController {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
 		// TODO: refactor with pattern matching in Java 14
-		if(principal instanceof GroupOwnerPrincipal) {
-			String ownerEmail = ((GroupOwnerPrincipal) principal).getEmail();
-			Optional<QuestGroupOwner> owner = owners.findByEmail(ownerEmail);
-			if(!owner.get().getQuestGroups().contains(group.get())) {
-				return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-			}
-		} else if (principal instanceof ParticipantPrincipal) {
-			String userEmail = ((ParticipantPrincipal) principal).getEmail();
-			Optional<QuestParticipant> maybeUser = users.findByEmailAndGroup_Id(userEmail, group.get().getId());
-			if(maybeUser.isEmpty()) {
-				return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-			}
+		if (!security.hasAccessToTheGroup(principal, group.get())) {
+			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
 		return ResponseEntity.ok(quests.findAllByGroup_Id(id).stream().map(QuestDTO::of).collect(Collectors.toList()));
 	}
@@ -104,7 +98,7 @@ public class QuestsController {
 			}
 		} else if (principal instanceof ParticipantPrincipal) {
 			String userEmail = ((ParticipantPrincipal) principal).getEmail();
-			Optional<QuestParticipant> maybeUser = users.findByEmailAndGroup_Id(userEmail, questOpt.get().getGroup().getId());
+			Optional<QuestParticipant> maybeUser = participants.findByEmailAndGroup_Id(userEmail, questOpt.get().getGroup().getId());
 			if(maybeUser.isEmpty()) {
 				return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 			}
