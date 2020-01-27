@@ -10,7 +10,7 @@ import javax.persistence.*;
 @Entity
 @Table(name = "participants")
 @NoArgsConstructor
-public class QuestParticipant {
+public class QuestParticipant extends Auditable {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;

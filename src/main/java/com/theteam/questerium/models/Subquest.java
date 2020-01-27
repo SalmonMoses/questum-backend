@@ -10,7 +10,7 @@ import javax.persistence.*;
 @Entity
 @Table(name = "subquests")
 @NoArgsConstructor
-public class Subquest {
+public class Subquest extends Auditable {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
