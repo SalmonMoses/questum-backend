@@ -6,6 +6,9 @@ import lombok.Value;
 @Value
 public class ParticipantPrincipal {
 	@NonNull
+	Long id;
+
+	@NonNull
 	String email;
 
 	@NonNull

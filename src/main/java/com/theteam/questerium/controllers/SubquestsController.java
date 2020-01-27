@@ -2,8 +2,6 @@ package com.theteam.questerium.controllers;
 
 import com.theteam.questerium.dto.SubquestDTO;
 import com.theteam.questerium.models.Quest;
-import com.theteam.questerium.models.QuestGroup;
-import com.theteam.questerium.models.QuestGroupOwner;
 import com.theteam.questerium.models.Subquest;
 import com.theteam.questerium.repositories.GroupOwnerRepository;
 import com.theteam.questerium.repositories.GroupRepository;
@@ -11,7 +9,6 @@ import com.theteam.questerium.repositories.QuestRepository;
 import com.theteam.questerium.repositories.SubquestRepository;
 import com.theteam.questerium.requests.AddSubquestRequest;
 import com.theteam.questerium.requests.ChangeSubquestRequest;
-import com.theteam.questerium.security.GroupOwnerPrincipal;
 import com.theteam.questerium.services.SecurityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -47,41 +44,31 @@ public class SubquestsController {
 		this.security = security;
 	}
 
-	@GetMapping("/groups/{group_id}/quests/{quest_id}/subquests")
-	public ResponseEntity<List<SubquestDTO>> getAllSubquests(@PathVariable("group_id") long groupId, @PathVariable(
-			"quest_id") long questId, Authentication auth) {
+	@GetMapping("/quests/{quest_id}/subquests")
+	public ResponseEntity<List<SubquestDTO>> getAllSubquests(@PathVariable("quest_id") long questId,
+	                                                         Authentication auth) {
 		Object principal = auth.getPrincipal();
-		Optional<QuestGroup> group = groups.findById(groupId);
-		if (group.isEmpty()) {
-			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-		}
-		Optional<Quest> quest = quests.findByIdAndGroup_Id(questId, groupId);
+		Optional<Quest> quest = quests.findById(questId);
 		if (quest.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
-		// TODO: refactor with pattern matching in Java 14
-		if (!security.hasAccessToTheGroup(principal, group.get())) {
+		if (!security.hasAccessToTheGroup(principal, quest.get().getGroup())) {
 			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
 		return ResponseEntity.ok(quest.get().getSubquests().stream().map(SubquestDTO::of).collect(Collectors.toList()));
 	}
 
-	@PostMapping("/groups/{group_id}/quests/{quest_id}/subquests")
+	@PostMapping("/quests/{quest_id}/subquests")
 	@PreAuthorize("hasRole('ROLE_OWNER')")
-	public ResponseEntity<SubquestDTO> addNewSubquest(@PathVariable("group_id") long groupId, @PathVariable(
-			"quest_id") long questId, @RequestBody AddSubquestRequest req, Authentication auth) {
-		String ownerEmail = ((GroupOwnerPrincipal) auth.getPrincipal()).getEmail();
-		Optional<QuestGroupOwner> owner = owners.findByEmail(ownerEmail);
-		Optional<QuestGroup> group = groups.findById(groupId);
-		if (group.isEmpty()) {
-			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-		}
-		if (!group.get().getOwner().equals(owner.get())) {
-			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-		}
-		Optional<Quest> quest = quests.findByIdAndGroup_Id(questId, groupId);
+	public ResponseEntity<SubquestDTO> addNewSubquest(@PathVariable("quest_id") long questId,
+	                                                  @RequestBody AddSubquestRequest req, Authentication auth) {
+		Object principal = auth.getPrincipal();
+		Optional<Quest> quest = quests.findById(questId);
 		if (quest.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		if (!security.hasAccessToTheGroup(principal, quest.get().getGroup())) {
+			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
 		Subquest subquest = new Subquest();
 		subquest.setDescription(req.getDesc());
@@ -94,26 +81,19 @@ public class SubquestsController {
 		return new ResponseEntity<SubquestDTO>(SubquestDTO.of(subquest), HttpStatus.CREATED);
 	}
 
-	@PutMapping("/{subquest_order}")
+	@PutMapping("/subquests/{id}")
 	@PreAuthorize("hasRole('ROLE_OWNER')")
-	public ResponseEntity<SubquestDTO> changeSubquest(@PathVariable("group_id") long groupId,
-	                                                  @PathVariable("quest_id") long questId,
-	                                                  @PathVariable("subquest_order") long order,
-	                                                  @RequestBody ChangeSubquestRequest req, Authentication auth) {
-		String ownerEmail = ((GroupOwnerPrincipal) auth.getPrincipal()).getEmail();
-		Optional<QuestGroupOwner> owner = owners.findByEmail(ownerEmail);
-		Optional<QuestGroup> group = groups.findById(groupId);
-		if (group.isEmpty()) {
+	public ResponseEntity<SubquestDTO> changeSubquest(@PathVariable long id, @RequestBody ChangeSubquestRequest req,
+	                                                  Authentication auth) {
+		Object principal = auth.getPrincipal();
+		Optional<Subquest> subquestOpt = subquests.findById(id);
+		if(subquestOpt.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
-		if (!group.get().getOwner().equals(owner.get())) {
-			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+		if(!security.hasAccessToTheGroup(principal, subquestOpt.get().getParentQuest().getGroup())) {
+			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
-		Optional<Quest> quest = quests.findByIdAndGroup_Id(questId, groupId);
-		if (quest.isEmpty()) {
-			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-		}
-		Subquest subquest = quest.get().getSubquests().get((int) order);
+		Subquest subquest = subquestOpt.get();
 		if (req.getDesc() != null) {
 			subquest.setDescription(req.getDesc());
 		}

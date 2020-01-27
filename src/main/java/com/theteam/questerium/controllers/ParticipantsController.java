@@ -6,7 +6,9 @@ import com.theteam.questerium.models.QuestParticipant;
 import com.theteam.questerium.repositories.GroupRepository;
 import com.theteam.questerium.repositories.QuestParticipantRepository;
 import com.theteam.questerium.requests.AddParticipantRequest;
+import com.theteam.questerium.requests.ChangeOwnerRequest;
 import com.theteam.questerium.security.GroupOwnerPrincipal;
+import com.theteam.questerium.security.ParticipantPrincipal;
 import com.theteam.questerium.services.SHA512Service;
 import com.theteam.questerium.services.SecurityService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,15 +33,19 @@ public class ParticipantsController {
 	private final SHA512Service encrypter;
 	@Autowired
 	private final SecurityService security;
+	@Autowired
+	private final SHA512Service encryptor;
 
 	private final Random randomGen = new Random();
 
 	public ParticipantsController(QuestParticipantRepository participants,
-	                              GroupRepository groups, SHA512Service encrypter, SecurityService security) {
+	                              GroupRepository groups, SHA512Service encrypter, SecurityService security,
+	                              SHA512Service encryptor) {
 		this.participants = participants;
 		this.groups = groups;
 		this.encrypter = encrypter;
 		this.security = security;
+		this.encryptor = encryptor;
 	}
 
 	@GetMapping("/groups/{id}/participants")
@@ -86,13 +92,66 @@ public class ParticipantsController {
 	public ResponseEntity<QuestParticipantDTO> getParticipantById(@PathVariable long id,
 	                                                              Authentication auth) {
 		Optional<QuestParticipant> participant = participants.findById(id);
-		if(participant.isEmpty()) {
+		if (participant.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
 		Object principal = auth.getPrincipal();
-		if(!security.hasAccessToTheGroup(principal, participant.get().getGroup())) {
+		if (!security.hasAccessToTheGroup(principal, participant.get().getGroup())) {
 			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
 		return participant.map(QuestParticipantDTO::of).map(ResponseEntity::ok).get();
+	}
+
+	@PutMapping("/participants/{id}")
+	@PreAuthorize("hasRole('ROLE_PARTICIPANT')")
+	public ResponseEntity<QuestParticipantDTO> changeById(@PathVariable long id, @RequestBody ChangeOwnerRequest req,
+	                                                      Authentication auth) {
+		ParticipantPrincipal principal = (ParticipantPrincipal) auth.getPrincipal();
+		Optional<QuestParticipant> participant = participants.findById(id);
+		if (participant.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		QuestParticipant participantObj = participant.get();
+		if (!principal.getEmail()
+		              .equals(participantObj.getEmail()) || !(principal.getGroup() == participantObj.getGroup()
+		                                                                                            .getId())) {
+			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+		}
+		if (req.getEmail() != null) {
+			if (participants.existsByEmailAndGroup_Id(req.getEmail(), participantObj.getGroup().getId())) {
+				return new ResponseEntity<>(HttpStatus.CONFLICT);
+			}
+			participantObj.setEmail(req.getEmail());
+			if (req.getPassword() == null) {
+				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+			}
+		}
+		if (req.getName() != null) {
+			participantObj.setName(req.getName());
+		}
+		if (req.getPassword() != null) {
+			String newPassword = encryptor.saltAndEncrypt(participantObj.getEmail(), req.getPassword());
+			participantObj.setPassword(newPassword);
+		}
+		participants.save(participantObj);
+		return participant
+				.map(QuestParticipantDTO::of)
+				.map(ResponseEntity::ok)
+				.orElseGet(() -> new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR));
+	}
+
+	@DeleteMapping("/participants/{id}")
+	public ResponseEntity<?> deleteById(@PathVariable long id,
+	                                    Authentication auth) {
+		Object principal = auth.getPrincipal();
+		Optional<QuestParticipant> participant = participants.findById(id);
+		if (participant.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		if (!security.hasAccessToTheParticipant(principal, participant.get())) {
+			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+		}
+		participants.deleteById(id);
+		return new ResponseEntity<>(HttpStatus.OK);
 	}
 }

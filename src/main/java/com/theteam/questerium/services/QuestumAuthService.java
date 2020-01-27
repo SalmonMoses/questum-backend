@@ -33,6 +33,6 @@ public class QuestumAuthService {
 
 	public ParticipantPrincipal handleUserLogin(AuthToken token) {
 		QuestParticipant user = participants.findById(token.getOwner()).get();
-		return new ParticipantPrincipal(user.getEmail(), user.getName(), user.getGroup().getId());
+		return new ParticipantPrincipal(user.getId(), user.getEmail(), user.getName(), user.getGroup().getId());
 	}
 }

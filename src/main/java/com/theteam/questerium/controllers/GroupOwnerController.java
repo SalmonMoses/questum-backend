@@ -64,8 +64,6 @@ public class GroupOwnerController {
 			if (req.getPassword() == null) {
 				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 			}
-			String newPassword = encryptor.saltAndEncrypt(req.getEmail(), req.getPassword());
-			ownerObj.setPassword(newPassword);
 		}
 		if (req.getName() != null) {
 			ownerObj.setName(req.getName());

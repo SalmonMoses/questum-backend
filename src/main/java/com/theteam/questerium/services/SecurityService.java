@@ -37,4 +37,16 @@ public class SecurityService {
 		}
 		return false;
 	}
+
+	public boolean hasAccessToTheParticipant(Object principal, QuestParticipant participant) {
+		if (principal instanceof GroupOwnerPrincipal) {
+			String ownerEmail = ((GroupOwnerPrincipal) principal).getEmail();
+			Optional<QuestGroupOwner> owner = owners.findByEmail(ownerEmail);
+			return owner.get().getQuestGroups().contains(participant.getGroup());
+		} else if (principal instanceof ParticipantPrincipal) {
+			long userId = ((ParticipantPrincipal) principal).getId();
+			return userId == participant.getId();
+		}
+		return false;
+	}
 }

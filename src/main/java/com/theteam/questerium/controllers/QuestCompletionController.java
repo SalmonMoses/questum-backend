@@ -42,7 +42,7 @@ public class QuestCompletionController {
 	}
 
 	@PostMapping("/groups/{group_id}/submit")
-	@PreAuthorize("hasRole('ROLE_USER')")
+	@PreAuthorize("hasRole('ROLE_PARTICIPANT')")
 	public ResponseEntity<CompletedSubquestDTO> submitQuestAnswer(@PathVariable("group_id") long groupId,
 	                                                              @RequestBody SubmitQuestAnswerRequest req,
 	                                                              Authentication auth) {
