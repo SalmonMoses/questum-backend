@@ -11,6 +11,7 @@ import com.theteam.questerium.repositories.QuestParticipantRepository;
 import com.theteam.questerium.requests.ChangeGroupRequest;
 import com.theteam.questerium.requests.CreateGroupRequest;
 import com.theteam.questerium.security.GroupOwnerPrincipal;
+import com.theteam.questerium.services.SecurityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,13 +33,16 @@ public class GroupController {
 	private final GroupOwnerRepository owners;
 	@Autowired
 	private final QuestParticipantRepository participants;
+	@Autowired
+	private final SecurityService securityService;
 
 
 	GroupController(GroupRepository groups, GroupOwnerRepository owners,
-	                QuestParticipantRepository participants) {
+	                QuestParticipantRepository participants, SecurityService securityService) {
 		this.groups = groups;
 		this.owners = owners;
 		this.participants = participants;
+		this.securityService = securityService;
 	}
 
 	@GetMapping
@@ -62,8 +66,14 @@ public class GroupController {
 	}
 
 	@GetMapping("/{id}")
-	public ResponseEntity<QuestGroupDTO> getById(@PathVariable Long id) {
+	public ResponseEntity<QuestGroupDTO> getById(@PathVariable Long id, Authentication auth) {
 		Optional<QuestGroup> group = groups.findById(id);
+		if (group.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		if (!securityService.hasAccessToTheGroup(auth, group.get())) {
+			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+		}
 		return group
 				.map(QuestGroupDTO::of)
 				.map(ResponseEntity::ok)
@@ -85,8 +95,8 @@ public class GroupController {
 		group.get().setName(req.getName());
 		groups.save(group.get());
 		return group.map(QuestGroupDTO::of)
-		     .map(ResponseEntity::ok)
-		     .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+		            .map(ResponseEntity::ok)
+		            .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
 	}
 
 	@DeleteMapping("/{id}")
@@ -113,10 +123,13 @@ public class GroupController {
 	}
 
 	@GetMapping("/{id}/leaderboard")
-	public ResponseEntity<List<QuestParticipantDTO>> getGroupLeaderboard(@PathVariable long id) {
+	public ResponseEntity<List<QuestParticipantDTO>> getGroupLeaderboard(@PathVariable long id, Authentication auth) {
 		Optional<QuestGroup> group = groups.findById(id);
 		if (group.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		if (!securityService.hasAccessToTheGroup(auth, group.get())) {
+			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
 		return ResponseEntity.ok(participants.findAllByGroup_Id(id)
 		                                     .stream()
