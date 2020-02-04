@@ -35,7 +35,7 @@ public class GroupOwnerController {
 	}
 
 	@GetMapping("/{id}")
-	public ResponseEntity<QuestGroupOwnerDTO> getById(@PathVariable long id) {
+	public ResponseEntity<QuestGroupOwnerDTO> getById(@PathVariable long id, Authentication auth) {
 		Optional<QuestGroupOwner> owner = owners.findById(id);
 		return owner
 				.map(QuestGroupOwnerDTO::of)

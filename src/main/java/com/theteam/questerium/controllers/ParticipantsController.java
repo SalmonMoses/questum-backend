@@ -112,9 +112,7 @@ public class ParticipantsController {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
 		QuestParticipant participantObj = participant.get();
-		if (!principal.getEmail()
-		              .equals(participantObj.getEmail()) || !(principal.getGroup() == participantObj.getGroup()
-		                                                                                            .getId())) {
+		if (principal.getId() != id) {
 			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
 		if (req.getEmail() != null) {

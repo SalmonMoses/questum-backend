@@ -10,6 +10,7 @@ import com.theteam.questerium.responses.OwnerLoginResponse;
 import com.theteam.questerium.responses.ParticipantLoginResponse;
 import com.theteam.questerium.services.SHA512Service;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +27,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/login")
+@Slf4j
 public class LoginController {
 	@Autowired
 	private final GroupRepository groups;

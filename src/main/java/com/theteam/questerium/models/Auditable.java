@@ -14,6 +14,6 @@ import java.util.Date;
 @EntityListeners(AuditingEntityListener.class)
 public class Auditable {
 	@LastModifiedDate
-	@Column(name = "last_modified_date")
+	@Column(name = "last_modified")
 	private Date lastModifiedDate;
 }
