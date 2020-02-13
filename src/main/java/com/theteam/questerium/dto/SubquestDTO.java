@@ -9,7 +9,7 @@ import lombok.Value;
 @Builder
 public class SubquestDTO {
 	@NonNull
-	private String description;
+	private String desc;
 
 	@NonNull
 	private String verificationType;
@@ -19,7 +19,7 @@ public class SubquestDTO {
 
 	public static SubquestDTO of(Subquest subquest) {
 		return SubquestDTO.builder()
-		                  .description(subquest.getDescription())
+		                  .desc(subquest.getDescription())
 		                  .verificationType(subquest.getVerificationType())
 		                  .order(subquest.getOrder())
 		                  .build();
