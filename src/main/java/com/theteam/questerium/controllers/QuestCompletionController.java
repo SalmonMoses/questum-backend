@@ -7,6 +7,7 @@ import com.theteam.questerium.models.QuestGroupOwner;
 import com.theteam.questerium.models.Subquest;
 import com.theteam.questerium.repositories.*;
 import com.theteam.questerium.requests.SubmitQuestAnswerRequest;
+import com.theteam.questerium.requests.VerifySubquestRequest;
 import com.theteam.questerium.security.GroupOwnerPrincipal;
 import com.theteam.questerium.security.ParticipantPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,7 +73,7 @@ public class QuestCompletionController {
 	@PutMapping("groups/{group_id}/verify")
 	@PreAuthorize("hasRole('ROLE_OWNER')")
 	public ResponseEntity<CompletedSubquestDTO> verifyQuestAnswer(@PathVariable("group_id") long groupId,
-	                                                              @RequestParam("verification_id") long verificationId,
+	                                                              @RequestBody VerifySubquestRequest req,
 	                                                              Authentication auth) {
 		String ownerEmail = ((GroupOwnerPrincipal) auth.getPrincipal()).getEmail();
 		Optional<QuestGroupOwner> owner = owners.findByEmail(ownerEmail);
@@ -83,15 +84,24 @@ public class QuestCompletionController {
 		if (!group.get().getOwner().equals(owner.get())) {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
-		Optional<CompletedSubquest> completedSub = completedSubquests.findById(verificationId);
+		Optional<CompletedSubquest> completedSub = completedSubquests.findByUser_IdAndSubquest_Id(req.getUserId(),
+		                                                                                          req.getSubquestId());
 		if (completedSub.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
 		CompletedSubquest subquest = completedSub.get();
-		subquest.setVerified(true);
-		completedSubquests.save(subquest);
-		CompletedSubquestDTO res = CompletedSubquestDTO.of(subquest);
-		return ResponseEntity.ok(res);
+		if (req.isVerified()) {
+			subquest.setVerified(true);
+			completedSubquests.save(subquest);
+			CompletedSubquestDTO res = CompletedSubquestDTO.of(subquest);
+			return ResponseEntity.ok(res);
+		} else {
+			if (subquest.isVerified()) {
+				return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+			}
+			completedSubquests.delete(subquest);
+			return new ResponseEntity<>(HttpStatus.OK);
+		}
 	}
 
 	@PutMapping("groups/{group_id}/reject")
@@ -112,7 +122,7 @@ public class QuestCompletionController {
 		if (completedSub.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
-		if(completedSub.get().isVerified()) {
+		if (completedSub.get().isVerified()) {
 			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
 		CompletedSubquest subquest = completedSub.get();

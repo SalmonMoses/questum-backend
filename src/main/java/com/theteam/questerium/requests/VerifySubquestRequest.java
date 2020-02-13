@@ -5,5 +5,6 @@ import lombok.Value;
 @Value
 public class VerifySubquestRequest {
 	long subquestId;
-	long user_id;
+	long userId;
+	boolean verified;
 }
