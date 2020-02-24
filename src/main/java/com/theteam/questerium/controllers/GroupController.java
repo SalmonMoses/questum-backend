@@ -19,7 +19,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -67,11 +66,12 @@ public class GroupController {
 
 	@GetMapping("/{id}")
 	public ResponseEntity<QuestGroupDTO> getById(@PathVariable Long id, Authentication auth) {
+		Object principal = auth.getPrincipal();
 		Optional<QuestGroup> group = groups.findById(id);
 		if (group.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
-		if (!securityService.hasAccessToTheGroup(auth, group.get())) {
+		if (!securityService.hasAccessToTheGroup(principal, group.get())) {
 			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
 		return group
@@ -124,16 +124,16 @@ public class GroupController {
 
 	@GetMapping("/{id}/leaderboard")
 	public ResponseEntity<List<QuestParticipantDTO>> getGroupLeaderboard(@PathVariable long id, Authentication auth) {
+		Object principal = auth.getPrincipal();
 		Optional<QuestGroup> group = groups.findById(id);
 		if (group.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
-		if (!securityService.hasAccessToTheGroup(auth, group.get())) {
+		if (!securityService.hasAccessToTheGroup(principal, group.get())) {
 			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
-		return ResponseEntity.ok(participants.findAllByGroup_Id(id)
+		return ResponseEntity.ok(participants.findAllByGroup_IdOrderByPointsDesc(id)
 		                                     .stream()
-		                                     .sorted(Comparator.comparingInt(o -> o.getPoints() * (-1)))
 		                                     .map(QuestParticipantDTO::of)
 		                                     .collect(Collectors.toList()));
 	}

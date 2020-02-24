@@ -28,8 +28,7 @@ public class SecurityService {
 		// TODO: refactor with pattern matching in Java 14
 		if (principal instanceof GroupOwnerPrincipal) {
 			String ownerEmail = ((GroupOwnerPrincipal) principal).getEmail();
-			Optional<QuestGroupOwner> owner = owners.findByEmail(ownerEmail);
-			return owner.get().getQuestGroups().contains(group);
+			return group.getOwner().getEmail().equals(ownerEmail);
 		} else if (principal instanceof ParticipantPrincipal) {
 			String userEmail = ((ParticipantPrincipal) principal).getEmail();
 			Optional<QuestParticipant> maybeUser = participants.findByEmailAndGroup_Id(userEmail, group.getId());
