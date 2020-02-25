@@ -41,6 +41,6 @@ public class ResourceServerConfiguration extends ResourceServerConfigurerAdapter
 	@Override
 	public void addCorsMappings(CorsRegistry registry) {
 		registry.addMapping("/**")
-		        .allowedOrigins("http://localhost:3000", "https://questerium.herokuapp.com");
+		        .allowedOrigins("http://localhost:3000", "https://questerium.herokuapp.com", "*");
 	}
 }
