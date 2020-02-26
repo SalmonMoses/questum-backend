@@ -1,12 +1,15 @@
 package com.theteam.questerium.controllers;
 
 import com.theteam.questerium.dto.QuestParticipantDTO;
+import com.theteam.questerium.dto.ScoringDTO;
 import com.theteam.questerium.models.QuestGroup;
 import com.theteam.questerium.models.QuestParticipant;
+import com.theteam.questerium.repositories.CompletedQuestsRepository;
 import com.theteam.questerium.repositories.GroupRepository;
 import com.theteam.questerium.repositories.QuestParticipantRepository;
 import com.theteam.questerium.requests.AddParticipantRequest;
 import com.theteam.questerium.requests.ChangeOwnerRequest;
+import com.theteam.questerium.responses.ScoreResponse;
 import com.theteam.questerium.security.GroupOwnerPrincipal;
 import com.theteam.questerium.security.ParticipantPrincipal;
 import com.theteam.questerium.services.SHA512Service;
@@ -35,17 +38,20 @@ public class ParticipantsController {
 	private final SecurityService security;
 	@Autowired
 	private final SHA512Service encryptor;
+	@Autowired
+	private final CompletedQuestsRepository completedQuests;
 
 	private final Random randomGen = new Random();
 
 	public ParticipantsController(QuestParticipantRepository participants,
 	                              GroupRepository groups, SHA512Service encrypter, SecurityService security,
-	                              SHA512Service encryptor) {
+	                              SHA512Service encryptor, CompletedQuestsRepository completedQuests) {
 		this.participants = participants;
 		this.groups = groups;
 		this.encrypter = encrypter;
 		this.security = security;
 		this.encryptor = encryptor;
+		this.completedQuests = completedQuests;
 	}
 
 	@GetMapping("/groups/{id}/participants")
@@ -151,5 +157,23 @@ public class ParticipantsController {
 		}
 		participants.deleteById(id);
 		return new ResponseEntity<>(HttpStatus.OK);
+	}
+
+	@GetMapping("/participants/{id}/score")
+	public ResponseEntity<ScoreResponse> getParticipantScoreById(@PathVariable long id,
+	                                                             Authentication auth) {
+		Optional<QuestParticipant> participant = participants.findById(id);
+		if (participant.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		if (!security.hasAccessToTheGroup(auth.getPrincipal(), participant.get().getGroup())) {
+			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+		}
+		long participantPoints = completedQuests.getParticipantScoreById(id);
+		List<ScoringDTO> scorings = completedQuests.findAllByUser_Id(id)
+		                                           .stream()
+		                                           .map(ScoringDTO::of)
+		                                           .collect(Collectors.toList());
+		return ResponseEntity.ok(new ScoreResponse(participantPoints, scorings));
 	}
 }

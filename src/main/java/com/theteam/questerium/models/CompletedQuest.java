@@ -25,5 +25,6 @@ public class CompletedQuest extends Auditable {
 	@JoinColumn(name = "quest_id")
 	private Quest quest;
 
+	@Column(name = "points")
 	private int points;
 }
