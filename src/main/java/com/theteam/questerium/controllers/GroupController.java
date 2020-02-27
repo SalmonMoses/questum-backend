@@ -1,5 +1,6 @@
 package com.theteam.questerium.controllers;
 
+import com.theteam.questerium.dto.CompletedSubquestDTO;
 import com.theteam.questerium.dto.QuestGroupDTO;
 import com.theteam.questerium.dto.QuestGroupOwnerDTO;
 import com.theteam.questerium.dto.QuestParticipantDTO;
@@ -136,5 +137,22 @@ public class GroupController {
 		                                     .stream()
 		                                     .map(QuestParticipantDTO::of)
 		                                     .collect(Collectors.toList()));
+	}
+
+	@GetMapping("/{id}/pending")
+	@PreAuthorize("hasRole('ROLE_OWNER')")
+	public ResponseEntity<List<CompletedSubquestDTO>> getPendingQuests(@PathVariable long id, Authentication auth) {
+		Object principal = auth.getPrincipal();
+		Optional<QuestGroup> group = groups.findById(id);
+		if (group.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		if (!securityService.hasAccessToTheGroup(principal, group.get())) {
+			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+		}
+		return ResponseEntity.ok(groups.findAllPendingSubquestsByGroup_Id(id)
+		                               .stream()
+		                               .map(CompletedSubquestDTO::of)
+		                               .collect(Collectors.toList()));
 	}
 }

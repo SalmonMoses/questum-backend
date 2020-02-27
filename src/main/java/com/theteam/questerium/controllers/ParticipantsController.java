@@ -176,4 +176,16 @@ public class ParticipantsController {
 		                                           .collect(Collectors.toList());
 		return ResponseEntity.ok(new ScoreResponse(participantPoints, scorings));
 	}
+
+	@GetMapping("/participants/{id}/progress")
+	public ResponseEntity<Long> getProgressForQuest(@PathVariable long id, Authentication auth) {
+		Optional<QuestParticipant> participant = participants.findById(id);
+		if (participant.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		if (!security.hasAccessToTheGroup(auth.getPrincipal(), participant.get().getGroup())) {
+			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+		}
+		return ResponseEntity.ok(participants.getProgressForQuest(id, 10));
+	}
 }
