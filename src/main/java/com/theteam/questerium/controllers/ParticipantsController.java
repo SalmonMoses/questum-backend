@@ -1,10 +1,12 @@
 package com.theteam.questerium.controllers;
 
+import com.theteam.questerium.dto.ProgressDTO;
 import com.theteam.questerium.dto.QuestParticipantDTO;
 import com.theteam.questerium.dto.ScoringDTO;
 import com.theteam.questerium.models.Quest;
 import com.theteam.questerium.models.QuestGroup;
 import com.theteam.questerium.models.QuestParticipant;
+import com.theteam.questerium.models.Subquest;
 import com.theteam.questerium.repositories.CompletedQuestsRepository;
 import com.theteam.questerium.repositories.GroupRepository;
 import com.theteam.questerium.repositories.QuestParticipantRepository;
@@ -183,21 +185,9 @@ public class ParticipantsController {
 		return ResponseEntity.ok(new ScoreResponse(participantPoints, scorings));
 	}
 
-	@GetMapping("/participants/{id}/progress")
-	public ResponseEntity<Long> getProgressForQuest(@PathVariable long id, Authentication auth) {
-		Optional<QuestParticipant> participant = participants.findById(id);
-		if (participant.isEmpty()) {
-			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-		}
-		if (!security.hasAccessToTheGroup(auth.getPrincipal(), participant.get().getGroup())) {
-			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-		}
-		return ResponseEntity.ok(participants.getProgressForQuest(id, 10));
-	}
-
 	@GetMapping("/participants/{id}/progress/{questId}")
-	public ResponseEntity<Long> getUnProgressForQuest(@PathVariable long id, @PathVariable long questId,
-	                                                  Authentication auth) {
+	public ResponseEntity<ProgressDTO> getProgressForQuest(@PathVariable long id, @PathVariable long questId,
+	                                                       Authentication auth) {
 		Optional<QuestParticipant> participant = participants.findById(id);
 		Optional<Quest> quest = quests.findById(questId);
 		if (participant.isEmpty() || quest.isEmpty()) {
@@ -209,6 +199,8 @@ public class ParticipantsController {
 				.getGroup())) {
 			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
-		return ResponseEntity.ok(participants.getRemainingSubquestsForQuestId(id, questId));
+		long subProgress = participants.getProgressForQuest(id, questId);
+		List<Subquest> subquests = quest.get().getSubquests();
+		return ResponseEntity.ok(ProgressDTO.of(subquests, subProgress));
 	}
 }
