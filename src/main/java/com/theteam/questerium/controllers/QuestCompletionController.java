@@ -1,15 +1,13 @@
 package com.theteam.questerium.controllers;
 
 import com.theteam.questerium.dto.CompletedSubquestDTO;
-import com.theteam.questerium.models.CompletedSubquest;
-import com.theteam.questerium.models.QuestGroup;
-import com.theteam.questerium.models.QuestGroupOwner;
-import com.theteam.questerium.models.Subquest;
+import com.theteam.questerium.models.*;
 import com.theteam.questerium.repositories.*;
 import com.theteam.questerium.requests.SubmitQuestAnswerRequest;
 import com.theteam.questerium.requests.VerifySubquestRequest;
 import com.theteam.questerium.security.GroupOwnerPrincipal;
 import com.theteam.questerium.security.ParticipantPrincipal;
+import lombok.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +29,8 @@ public class QuestCompletionController {
 	private final SubquestRepository subquests;
 	@Autowired
 	private final CompletedSubquestsRepository completedSubquests;
+	@Autowired
+	private CompletedQuestsRepository completedQuests;
 
 	public QuestCompletionController(GroupRepository groups, GroupOwnerRepository owners,
 	                                 QuestParticipantRepository participants, SubquestRepository subquests,
@@ -47,7 +47,7 @@ public class QuestCompletionController {
 	public ResponseEntity<CompletedSubquestDTO> submitQuestAnswer(@PathVariable("group_id") long groupId,
 	                                                              @RequestBody SubmitQuestAnswerRequest req,
 	                                                              Authentication auth) {
-		String userEmail = ((ParticipantPrincipal) auth.getPrincipal()).getEmail();
+		ParticipantPrincipal userPrincipal = (ParticipantPrincipal) auth.getPrincipal();
 		if (groups.findById(groupId).isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
@@ -58,15 +58,31 @@ public class QuestCompletionController {
 		if (maybeSub.get().getParentQuest().getGroup().getId() != groupId) {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
-		if (!maybeSub.get().getVerificationType().equals("NONE") && req.getAnswer().equals("")) {
-			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-		}
 		CompletedSubquest completedSub = new CompletedSubquest();
-		completedSub.setUser(participants.findByEmailAndGroup_Id(userEmail, groupId).get());
+		Optional<QuestParticipant> participant = participants.findById(userPrincipal.getId());
+		if (maybeSub.get().getVerificationType().equals("NONE")) {
+			if (!req.getAnswer().equals("")) {
+				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+			}
+		}
+		completedSub.setUser(participant.get());
 		completedSub.setSubquest(maybeSub.get());
 		completedSub.setAnswer(req.getAnswer());
 		completedSub.setVerified(maybeSub.get().getVerificationType().equals("NONE"));
 		completedSubquests.save(completedSub);
+		if (maybeSub.get().getVerificationType().equals("NONE")) {
+			if (participants.getRemainingSubquestsForQuestId(userPrincipal.getId(), maybeSub.get()
+			                                                                                .getParentQuest()
+			                                                                                .getId()) == 0) {
+				CompletedQuest cq = new CompletedQuest();
+				cq.setUser(participant.get());
+				cq.setQuest(maybeSub.get().getParentQuest());
+				cq.setPoints(maybeSub.get().getParentQuest().getPoints());
+				completedQuests.save(cq);
+				participant.get().setPoints(participant.get().getPoints() + cq.getPoints());
+				participants.save(participant.get());
+			}
+		}
 		return ResponseEntity.ok(CompletedSubquestDTO.of(completedSub));
 	}
 
@@ -94,6 +110,16 @@ public class QuestCompletionController {
 			subquest.setVerified(true);
 			completedSubquests.save(subquest);
 			CompletedSubquestDTO res = CompletedSubquestDTO.of(subquest);
+			@NonNull QuestParticipant user = subquest.getUser();
+			if(participants.getRemainingSubquestsForQuestId(user.getId(), subquest.getSubquest().getParentQuest().getId()) == 0) {
+				CompletedQuest cq = new CompletedQuest();
+				cq.setUser(user);
+				cq.setQuest(subquest.getSubquest().getParentQuest());
+				cq.setPoints(subquest.getSubquest().getParentQuest().getPoints());
+				completedQuests.save(cq);
+				user.setPoints(user.getPoints() + cq.getPoints());
+				participants.save(user);
+			}
 			return ResponseEntity.ok(res);
 		} else {
 			if (subquest.isVerified()) {

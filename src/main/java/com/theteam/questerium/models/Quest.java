@@ -33,4 +33,7 @@ public class Quest {
 	@OneToMany(fetch = FetchType.LAZY, mappedBy = "parentQuest", cascade = CascadeType.ALL, orphanRemoval = true)
 	@OrderBy("order")
 	private List<Subquest> subquests;
+
+	@Column(name = "points")
+	private int points;
 }

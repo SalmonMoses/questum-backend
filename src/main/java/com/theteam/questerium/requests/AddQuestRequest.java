@@ -12,4 +12,7 @@ public class AddQuestRequest {
 
 	@NonNull
 	String desc;
+
+	@NonNull
+	int points;
 }

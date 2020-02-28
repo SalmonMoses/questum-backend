@@ -78,6 +78,7 @@ public class QuestsController {
 		quest.setTitle(req.getTitle());
 		quest.setDesc(req.getDesc());
 		quest.setGroup(group.get());
+		quest.setPoints(req.getPoints());
 		quests.save(quest);
 		return new ResponseEntity<QuestDTO>(QuestDTO.of(quest), HttpStatus.CREATED);
 	}

@@ -2,11 +2,13 @@ package com.theteam.questerium.controllers;
 
 import com.theteam.questerium.dto.QuestParticipantDTO;
 import com.theteam.questerium.dto.ScoringDTO;
+import com.theteam.questerium.models.Quest;
 import com.theteam.questerium.models.QuestGroup;
 import com.theteam.questerium.models.QuestParticipant;
 import com.theteam.questerium.repositories.CompletedQuestsRepository;
 import com.theteam.questerium.repositories.GroupRepository;
 import com.theteam.questerium.repositories.QuestParticipantRepository;
+import com.theteam.questerium.repositories.QuestRepository;
 import com.theteam.questerium.requests.AddParticipantRequest;
 import com.theteam.questerium.requests.ChangeOwnerRequest;
 import com.theteam.questerium.responses.ScoreResponse;
@@ -33,6 +35,8 @@ public class ParticipantsController {
 	@Autowired
 	private final GroupRepository groups;
 	@Autowired
+	private final QuestRepository quests;
+	@Autowired
 	private final SHA512Service encrypter;
 	@Autowired
 	private final SecurityService security;
@@ -44,10 +48,12 @@ public class ParticipantsController {
 	private final Random randomGen = new Random();
 
 	public ParticipantsController(QuestParticipantRepository participants,
-	                              GroupRepository groups, SHA512Service encrypter, SecurityService security,
+	                              GroupRepository groups, QuestRepository quests, SHA512Service encrypter,
+	                              SecurityService security,
 	                              SHA512Service encryptor, CompletedQuestsRepository completedQuests) {
 		this.participants = participants;
 		this.groups = groups;
+		this.quests = quests;
 		this.encrypter = encrypter;
 		this.security = security;
 		this.encryptor = encryptor;
@@ -187,5 +193,22 @@ public class ParticipantsController {
 			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
 		return ResponseEntity.ok(participants.getProgressForQuest(id, 10));
+	}
+
+	@GetMapping("/participants/{id}/progress/{questId}")
+	public ResponseEntity<Long> getUnProgressForQuest(@PathVariable long id, @PathVariable long questId,
+	                                                  Authentication auth) {
+		Optional<QuestParticipant> participant = participants.findById(id);
+		Optional<Quest> quest = quests.findById(questId);
+		if (participant.isEmpty() || quest.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		if (!security.hasAccessToTheGroup(auth.getPrincipal(), participant.get()
+		                                                                  .getGroup()) || !security.hasAccessToTheGroup(auth.getPrincipal(), quest
+				.get()
+				.getGroup())) {
+			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+		}
+		return ResponseEntity.ok(participants.getRemainingSubquestsForQuestId(id, questId));
 	}
 }
