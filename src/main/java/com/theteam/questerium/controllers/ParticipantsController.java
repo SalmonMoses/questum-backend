@@ -43,8 +43,6 @@ public class ParticipantsController {
 	@Autowired
 	private final SecurityService security;
 	@Autowired
-	private final SHA512Service encryptor;
-	@Autowired
 	private final CompletedQuestsRepository completedQuests;
 
 	private final Random randomGen = new Random();
@@ -58,7 +56,6 @@ public class ParticipantsController {
 		this.quests = quests;
 		this.encrypter = encrypter;
 		this.security = security;
-		this.encryptor = encryptor;
 		this.completedQuests = completedQuests;
 	}
 
@@ -142,7 +139,7 @@ public class ParticipantsController {
 			participantObj.setName(req.getName());
 		}
 		if (req.getPassword() != null) {
-			String newPassword = encryptor.saltAndEncrypt(participantObj.getEmail(), req.getPassword());
+			String newPassword = encrypter.saltAndEncrypt(participantObj.getEmail(), req.getPassword());
 			participantObj.setPassword(newPassword);
 		}
 		participants.save(participantObj);

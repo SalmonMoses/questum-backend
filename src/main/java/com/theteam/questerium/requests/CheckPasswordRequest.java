@@ -6,13 +6,9 @@ import lombok.NonNull;
 
 @Data
 @NoArgsConstructor
-public class AddSubquestRequest {
+public class CheckPasswordRequest {
+	long type;
+	long id;
 	@NonNull
-	private String title;
-
-	@NonNull
-	private String desc;
-
-	@NonNull
-	private String verification;
+	String password;
 }

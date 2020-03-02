@@ -72,13 +72,13 @@ public class SubquestsController {
 		}
 		Subquest subquest = new Subquest();
 		subquest.setDescription(req.getDesc());
-		Long order = req.getOrder().orElse((long) quest.get().getSubquests().size());
+		long order = quest.get().getSubquests().size();
 		subquest.setOrder(order);
 		subquest.setVerificationType(req.getVerification());
 		subquest.setParentQuest(quest.get());
-		quest.get().getSubquests().add(Math.toIntExact(order), subquest);
+		quest.get().getSubquests().add(subquest);
 		subquests.save(subquest);
-		return new ResponseEntity<SubquestDTO>(SubquestDTO.of(subquest), HttpStatus.CREATED);
+		return new ResponseEntity<>(SubquestDTO.of(subquest), HttpStatus.CREATED);
 	}
 
 	@PutMapping("/subquests/{id}")
