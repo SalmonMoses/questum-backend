@@ -8,11 +8,5 @@ import lombok.Value;
 @Builder
 public class PasswordCheckResponse {
 	@NonNull
-	Long type;
-
-	@NonNull
-	Long id;
-
-	@NonNull
 	boolean correct;
 }

@@ -5,7 +5,6 @@ import com.theteam.questerium.models.QuestParticipant;
 import com.theteam.questerium.repositories.GroupOwnerRepository;
 import com.theteam.questerium.repositories.GroupRepository;
 import com.theteam.questerium.repositories.QuestParticipantRepository;
-import com.theteam.questerium.requests.CheckPasswordRequest;
 import com.theteam.questerium.responses.GroupCheckResponse;
 import com.theteam.questerium.responses.ParticipantCheckResponse;
 import com.theteam.questerium.responses.PasswordCheckResponse;
@@ -16,7 +15,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Optional;
 
@@ -61,40 +63,30 @@ public class CheckController {
 	}
 
 	@GetMapping("/password")
-	public ResponseEntity<PasswordCheckResponse> checkPassword(@RequestBody CheckPasswordRequest req,
+	public ResponseEntity<PasswordCheckResponse> checkPassword(@RequestParam String hash,
 	                                                           Authentication auth) {
 		Object principal = auth.getPrincipal();
-		if (req.getType() == 0 && principal instanceof GroupOwnerPrincipal) {
-			Optional<QuestGroupOwner> maybeOwner = owners.findById(req.getId());
+		if (principal instanceof GroupOwnerPrincipal) {
+			GroupOwnerPrincipal ownerPrincipal = (GroupOwnerPrincipal) principal;
+			Optional<QuestGroupOwner> maybeOwner = owners.findByEmail(ownerPrincipal.getEmail());
 			if (maybeOwner.isEmpty()) {
 				return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 			}
-			GroupOwnerPrincipal ownerPrincipal = (GroupOwnerPrincipal) principal;
-			if (!ownerPrincipal.getEmail().equals(maybeOwner.get().getEmail())) {
-				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-			}
-			String expectedPassword = encrypter.saltAndEncrypt(ownerPrincipal.getEmail(), req.getPassword());
 			PasswordCheckResponse res = PasswordCheckResponse.builder()
-			                                                 .type(req.getType())
-			                                                 .id(req.getId())
-			                                                 .correct(expectedPassword.equalsIgnoreCase(maybeOwner.get().getPassword()))
+			                                                 .correct(hash.equalsIgnoreCase(maybeOwner.get()
+			                                                                                                      .getPassword()))
 			                                                 .build();
 			return ResponseEntity.ok(res);
-		}
-		else if (req.getType() == 1 && principal instanceof ParticipantPrincipal) {
-			Optional<QuestParticipant> maybeParticipant = participants.findById(req.getId());
+		} else if (principal instanceof ParticipantPrincipal) {
+			ParticipantPrincipal participantPrincipal = (ParticipantPrincipal) principal;
+			Optional<QuestParticipant> maybeParticipant = participants.findById(participantPrincipal.getId());
 			if (maybeParticipant.isEmpty()) {
 				return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 			}
-			ParticipantPrincipal participantPrincipal = (ParticipantPrincipal) principal;
-			if (!participantPrincipal.getEmail().equals(maybeParticipant.get().getEmail())) {
-				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-			}
-			String expectedPassword = encrypter.saltAndEncrypt(participantPrincipal.getEmail(), req.getPassword());
 			PasswordCheckResponse res = PasswordCheckResponse.builder()
-			                                                 .type(req.getType())
-			                                                 .id(req.getId())
-			                                                 .correct(expectedPassword.equalsIgnoreCase(maybeParticipant.get().getPassword()))
+			                                                 .correct(hash.equalsIgnoreCase(maybeParticipant
+					                                                                                            .get()
+					                                                                                            .getPassword()))
 			                                                 .build();
 			return ResponseEntity.ok(res);
 		} else {
