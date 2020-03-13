@@ -28,7 +28,7 @@ public class ResourceServerConfiguration extends ResourceServerConfigurerAdapter
 	public void configure(HttpSecurity http) throws Exception {
 		http.cors().and().csrf().disable()
 		    .authorizeRequests()
-		    .antMatchers("/login/**", "/signup/**", "/check/**")
+		    .antMatchers("/login/**", "/signup/**", "/check/group", "/check/participant")
 		    .permitAll()
 		    .and()
 		    .authorizeRequests().anyRequest().authenticated();
@@ -41,9 +41,9 @@ public class ResourceServerConfiguration extends ResourceServerConfigurerAdapter
 
 	@Override
 	public void addCorsMappings(CorsRegistry registry) {
-		registry.addMapping("/**")
-		        .allowedOrigins("http://localhost:3000",
-		                        "https://questerium.herokuapp.com",
-		                        "http://questerium.herokuapp.com");
+		registry.addMapping("/**").allowedMethods("GET", "POST", "PUT", "DELETE");
+//		        .allowedOrigins("http://localhost:3000",
+//		                        "https://questerium.herokuapp.com",
+//		                        "http://questerium.herokuapp.com");
 	}
 }
