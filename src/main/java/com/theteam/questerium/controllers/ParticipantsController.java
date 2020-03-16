@@ -1,5 +1,8 @@
 package com.theteam.questerium.controllers;
 
+import com.google.api.client.util.IOUtils;
+import com.jlefebure.spring.boot.minio.MinioException;
+import com.jlefebure.spring.boot.minio.MinioService;
 import com.theteam.questerium.dto.ProgressDTO;
 import com.theteam.questerium.dto.QuestParticipantDTO;
 import com.theteam.questerium.dto.ScoringDTO;
@@ -19,12 +22,18 @@ import com.theteam.questerium.security.ParticipantPrincipal;
 import com.theteam.questerium.services.SHA512Service;
 import com.theteam.questerium.services.SecurityService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URLConnection;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
@@ -44,6 +53,8 @@ public class ParticipantsController {
 	private final SecurityService security;
 	@Autowired
 	private final CompletedQuestRepository completedQuests;
+	@Autowired
+	private MinioService minioService;
 
 	private final Random randomGen = new Random();
 
@@ -199,5 +210,32 @@ public class ParticipantsController {
 		long subProgress = participants.getProgressForQuest(id, questId);
 		List<Subquest> subquests = quest.get().getSubquests();
 		return ResponseEntity.ok(ProgressDTO.of(subquests, subProgress));
+	}
+
+	@GetMapping("/participants/{id}/avatar")
+	public void getAvatar(@PathVariable long id, Authentication auth, HttpServletResponse res) throws IOException,
+			MinioException {
+		Optional<QuestParticipant> participant = participants.findById(id);
+		if (participant.isEmpty()) {
+			res.setStatus(404);
+			return;
+		}
+		if (!security.hasAccessToTheGroup(auth.getPrincipal(), participant.get()
+		                                                                  .getGroup())) {
+			res.setStatus(401);
+			return;
+		}
+		String filename = "avatars/participants/" + String.valueOf(participant.get().getId());
+
+		InputStream inputStream = minioService.get(Path.of(filename));
+		InputStreamResource inputStreamResource = new InputStreamResource(inputStream);
+
+		// Set the content type and attachment header.
+		res.addHeader("Content-disposition", "attachment;filename=" + filename);
+		res.setContentType(URLConnection.guessContentTypeFromStream(inputStream));
+
+		// Copy the stream to the response's output stream.
+		IOUtils.copy(inputStream, res.getOutputStream());
+		res.flushBuffer();
 	}
 }

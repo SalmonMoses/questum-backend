@@ -1,5 +1,8 @@
 package com.theteam.questerium.controllers;
 
+import com.google.api.client.util.IOUtils;
+import com.jlefebure.spring.boot.minio.MinioException;
+import com.jlefebure.spring.boot.minio.MinioService;
 import com.theteam.questerium.dto.CompletedSubquestDTO;
 import com.theteam.questerium.dto.QuestGroupDTO;
 import com.theteam.questerium.dto.QuestGroupOwnerDTO;
@@ -14,12 +17,18 @@ import com.theteam.questerium.requests.CreateGroupRequest;
 import com.theteam.questerium.security.GroupOwnerPrincipal;
 import com.theteam.questerium.services.SecurityService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URLConnection;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -34,15 +43,16 @@ public class GroupController {
 	@Autowired
 	private final QuestParticipantRepository participants;
 	@Autowired
-	private final SecurityService securityService;
-
+	private final SecurityService security;
+	@Autowired
+	private MinioService minioService;
 
 	GroupController(GroupRepository groups, GroupOwnerRepository owners,
 	                QuestParticipantRepository participants, SecurityService securityService) {
 		this.groups = groups;
 		this.owners = owners;
 		this.participants = participants;
-		this.securityService = securityService;
+		this.security = securityService;
 	}
 
 	@GetMapping
@@ -72,7 +82,7 @@ public class GroupController {
 		if (group.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
-		if (!securityService.hasAccessToTheGroup(principal, group.get())) {
+		if (!security.hasAccessToTheGroup(principal, group.get())) {
 			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
 		return group
@@ -130,7 +140,7 @@ public class GroupController {
 		if (group.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
-		if (!securityService.hasAccessToTheGroup(principal, group.get())) {
+		if (!security.hasAccessToTheGroup(principal, group.get())) {
 			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
 		return ResponseEntity.ok(participants.findAllByGroup_IdOrderByPointsDesc(id)
@@ -147,12 +157,38 @@ public class GroupController {
 		if (group.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
-		if (!securityService.hasAccessToTheGroup(principal, group.get())) {
+		if (!security.hasAccessToTheGroup(principal, group.get())) {
 			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
 		return ResponseEntity.ok(groups.findAllPendingSubquestsByGroup_Id(id)
 		                               .stream()
 		                               .map(CompletedSubquestDTO::of)
 		                               .collect(Collectors.toList()));
+	}
+
+	@GetMapping("/{id}/avatar")
+	public void getAvatar(@PathVariable long id, Authentication auth, HttpServletResponse res) throws IOException,
+			MinioException {
+		Optional<QuestGroup> group = groups.findById(id);
+		if (group.isEmpty()) {
+			res.setStatus(404);
+			return;
+		}
+		if (!security.hasAccessToTheGroup(auth.getPrincipal(), group.get())) {
+			res.setStatus(401);
+			return;
+		}
+		String filename = "avatars/groups/" + String.valueOf(group.get().getId());
+
+		InputStream inputStream = minioService.get(Path.of(filename));
+		InputStreamResource inputStreamResource = new InputStreamResource(inputStream);
+
+		// Set the content type and attachment header.
+		res.addHeader("Content-disposition", "attachment;filename=" + filename);
+		res.setContentType(URLConnection.guessContentTypeFromStream(inputStream));
+
+		// Copy the stream to the response's output stream.
+		IOUtils.copy(inputStream, res.getOutputStream());
+		res.flushBuffer();
 	}
 }
