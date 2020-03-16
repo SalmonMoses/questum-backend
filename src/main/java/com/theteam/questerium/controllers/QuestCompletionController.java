@@ -8,7 +8,6 @@ import com.theteam.questerium.requests.VerifySubquestRequest;
 import com.theteam.questerium.security.GroupOwnerPrincipal;
 import com.theteam.questerium.security.ParticipantPrincipal;
 import com.theteam.questerium.services.QuestService;
-import lombok.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -76,7 +75,9 @@ public class QuestCompletionController {
 			completedSub.setVerified(true);
 			completedSubquests.save(completedSub);
 			questService.tryCompleteQuest(participant.get(), maybeSub.get().getParentQuest());
-		} else if (maybeSub.get().getVerificationType().equalsIgnoreCase("TEXT") && req.getAnswer().equals(maybeSub.get().getExpectedAnswer())) {
+		} else if (maybeSub.get().getVerificationType().equalsIgnoreCase("TEXT") && req.getAnswer()
+		                                                                               .equals(maybeSub.get()
+		                                                                                               .getExpectedAnswer())) {
 			completedSub.setVerified(true);
 			completedSubquests.save(completedSub);
 			questService.tryCompleteQuest(participant.get(), maybeSub.get().getParentQuest());
@@ -106,7 +107,7 @@ public class QuestCompletionController {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
 		CompletedSubquest subquest = completedSub.get();
-		if (req.isVerified()) {
+		/*if (req.isVerified()) {
 			subquest.setVerified(true);
 			completedSubquests.save(subquest);
 			CompletedSubquestDTO res = CompletedSubquestDTO.of(subquest);
@@ -119,7 +120,16 @@ public class QuestCompletionController {
 			}
 			completedSubquests.delete(subquest);
 			return new ResponseEntity<>(HttpStatus.OK);
+		}*/
+		if (subquest.isVerified()) {
+			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
+		subquest.setVerified(true);
+		completedSubquests.save(subquest);
+		CompletedSubquestDTO res = CompletedSubquestDTO.of(subquest);
+		QuestParticipant user = subquest.getUser();
+		questService.tryCompleteQuest(user, subquest.getSubquest().getParentQuest());
+		return ResponseEntity.ok(res);
 	}
 
 	@PutMapping("groups/{group_id}/reject")
