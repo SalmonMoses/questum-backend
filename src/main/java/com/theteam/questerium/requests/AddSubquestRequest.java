@@ -15,4 +15,6 @@ public class AddSubquestRequest {
 
 	@NonNull
 	private String verification;
+
+	private String expectedAnswer;
 }
