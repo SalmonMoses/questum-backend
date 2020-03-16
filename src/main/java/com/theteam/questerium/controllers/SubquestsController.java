@@ -83,6 +83,13 @@ public class SubquestsController {
 		subquest.setOrder(order);
 		subquest.setVerificationType(req.getVerification());
 		subquest.setParentQuest(quest.get());
+		if (req.getExpectedAnswer() != null) {
+			if (req.getVerification().equalsIgnoreCase("TEXT")) {
+				subquest.setExpectedAnswer(req.getExpectedAnswer());
+			} else {
+				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+			}
+		}
 		quest.get().getSubquests().add(subquest);
 		subquests.save(subquest);
 		return new ResponseEntity<>(SubquestDTO.of(subquest), HttpStatus.CREATED);
@@ -106,6 +113,13 @@ public class SubquestsController {
 		}
 		if (req.getVerificationType() != null) {
 			subquest.setVerificationType(req.getVerificationType());
+		}
+		if (req.getExpectedAnswer() != null) {
+			if (req.getExpectedAnswer().equalsIgnoreCase("TEXT")) {
+				subquest.setExpectedAnswer(req.getExpectedAnswer());
+			} else {
+				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+			}
 		}
 		subquests.save(subquest);
 		return new ResponseEntity<SubquestDTO>(SubquestDTO.of(subquest), HttpStatus.OK);

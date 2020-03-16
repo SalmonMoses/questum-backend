@@ -63,7 +63,7 @@ public class QuestCompletionController {
 		}
 		CompletedSubquest completedSub = new CompletedSubquest();
 		Optional<QuestParticipant> participant = participants.findById(userPrincipal.getId());
-		if (maybeSub.get().getVerificationType().equals("NONE")) {
+		if (maybeSub.get().getVerificationType().equalsIgnoreCase("NONE")) {
 			if (!req.getAnswer().equals("")) {
 				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 			}
@@ -71,10 +71,17 @@ public class QuestCompletionController {
 		completedSub.setUser(participant.get());
 		completedSub.setSubquest(maybeSub.get());
 		completedSub.setAnswer(req.getAnswer());
-		completedSub.setVerified(maybeSub.get().getVerificationType().equals("NONE"));
-		completedSubquests.save(completedSub);
-		if (maybeSub.get().getVerificationType().equals("NONE")) {
+		completedSub.setVerified(false);
+		if (maybeSub.get().getVerificationType().equalsIgnoreCase("NONE")) {
+			completedSub.setVerified(true);
+			completedSubquests.save(completedSub);
 			questService.tryCompleteQuest(participant.get(), maybeSub.get().getParentQuest());
+		} else if (maybeSub.get().getVerificationType().equalsIgnoreCase("TEXT") && req.getAnswer().equals(maybeSub.get().getExpectedAnswer())) {
+			completedSub.setVerified(true);
+			completedSubquests.save(completedSub);
+			questService.tryCompleteQuest(participant.get(), maybeSub.get().getParentQuest());
+		} else {
+			completedSubquests.save(completedSub);
 		}
 		return ResponseEntity.ok(CompletedSubquestDTO.of(completedSub));
 	}
