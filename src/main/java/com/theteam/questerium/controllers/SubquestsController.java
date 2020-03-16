@@ -87,10 +87,10 @@ public class SubquestsController {
 	                                                  Authentication auth) {
 		Object principal = auth.getPrincipal();
 		Optional<Subquest> subquestOpt = subquests.findById(id);
-		if(subquestOpt.isEmpty()) {
+		if (subquestOpt.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
-		if(!security.hasAccessToTheGroup(principal, subquestOpt.get().getParentQuest().getGroup())) {
+		if (!security.hasAccessToTheGroup(principal, subquestOpt.get().getParentQuest().getGroup())) {
 			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
 		Subquest subquest = subquestOpt.get();
@@ -102,5 +102,28 @@ public class SubquestsController {
 		}
 		subquests.save(subquest);
 		return new ResponseEntity<SubquestDTO>(SubquestDTO.of(subquest), HttpStatus.OK);
+	}
+
+	@DeleteMapping("/subquests/{id}")
+	@PreAuthorize("hasRole('ROLE_OWNER')")
+	public ResponseEntity<SubquestDTO> deleteSubquest(@PathVariable long id,
+	                                                  Authentication auth) {
+		Object principal = auth.getPrincipal();
+		Optional<Subquest> subquestOpt = subquests.findById(id);
+		if (subquestOpt.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		if (!security.hasAccessToTheGroup(principal, subquestOpt.get().getParentQuest().getGroup())) {
+			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+		}
+		Subquest subquest = subquestOpt.get();
+		subquests.delete(subquest);
+		subquests.findSubquestsByParentQuest_IdAndOrderGreaterThan(subquest.getParentQuest()
+		                                                                   .getId(), subquest.getOrder())
+		         .forEach(sub -> {
+			         sub.setOrder(sub.getOrder() - 1);
+			         subquests.save(sub);
+		         });
+		return new ResponseEntity<SubquestDTO>(HttpStatus.OK);
 	}
 }

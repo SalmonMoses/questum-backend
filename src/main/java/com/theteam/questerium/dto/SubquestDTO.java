@@ -9,6 +9,9 @@ import lombok.Value;
 @Builder
 public class SubquestDTO {
 	@NonNull
+	private long id;
+
+	@NonNull
 	private String desc;
 
 	@NonNull
@@ -19,6 +22,7 @@ public class SubquestDTO {
 
 	public static SubquestDTO of(Subquest subquest) {
 		return SubquestDTO.builder()
+		                  .id(subquest.getId())
 		                  .desc(subquest.getDescription())
 		                  .verificationType(subquest.getVerificationType())
 		                  .order(subquest.getOrder())
