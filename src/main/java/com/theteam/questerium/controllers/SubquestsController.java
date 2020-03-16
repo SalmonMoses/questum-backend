@@ -9,6 +9,7 @@ import com.theteam.questerium.repositories.QuestRepository;
 import com.theteam.questerium.repositories.SubquestRepository;
 import com.theteam.questerium.requests.AddSubquestRequest;
 import com.theteam.questerium.requests.ChangeSubquestRequest;
+import com.theteam.questerium.services.QuestService;
 import com.theteam.questerium.services.SecurityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -34,6 +35,8 @@ public class SubquestsController {
 	private final SubquestRepository subquests;
 	@Autowired
 	private final SecurityService security;
+	@Autowired
+	private QuestService questService;
 
 	public SubquestsController(GroupRepository groups, GroupOwnerRepository owners, QuestRepository quests,
 	                           SubquestRepository subquests, SecurityService security) {
@@ -55,7 +58,11 @@ public class SubquestsController {
 		if (!security.hasAccessToTheGroup(principal, quest.get().getGroup())) {
 			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
-		return ResponseEntity.ok(quest.get().getSubquests().stream().map(SubquestDTO::of).collect(Collectors.toList()));
+		return ResponseEntity.ok(quest.get()
+		                              .getSubquests()
+		                              .stream()
+		                              .map(SubquestDTO::of)
+		                              .collect(Collectors.toList()));
 	}
 
 	@PostMapping("/quests/{quest_id}/subquests")
@@ -124,6 +131,10 @@ public class SubquestsController {
 			         sub.setOrder(sub.getOrder() - 1);
 			         subquests.save(sub);
 		         });
+		subquest.getParentQuest()
+		        .getGroup()
+		        .getParticipants()
+		        .forEach(p -> questService.tryCompleteQuest(p, subquest.getParentQuest()));
 		return new ResponseEntity<SubquestDTO>(HttpStatus.OK);
 	}
 }

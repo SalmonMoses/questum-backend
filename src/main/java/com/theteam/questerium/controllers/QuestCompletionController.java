@@ -7,6 +7,7 @@ import com.theteam.questerium.requests.SubmitQuestAnswerRequest;
 import com.theteam.questerium.requests.VerifySubquestRequest;
 import com.theteam.questerium.security.GroupOwnerPrincipal;
 import com.theteam.questerium.security.ParticipantPrincipal;
+import com.theteam.questerium.services.QuestService;
 import lombok.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -30,7 +31,9 @@ public class QuestCompletionController {
 	@Autowired
 	private final CompletedSubquestsRepository completedSubquests;
 	@Autowired
-	private CompletedQuestsRepository completedQuests;
+	private CompletedQuestRepository completedQuests;
+	@Autowired
+	private QuestService questService;
 
 	public QuestCompletionController(GroupRepository groups, GroupOwnerRepository owners,
 	                                 QuestParticipantRepository participants, SubquestRepository subquests,
@@ -71,17 +74,7 @@ public class QuestCompletionController {
 		completedSub.setVerified(maybeSub.get().getVerificationType().equals("NONE"));
 		completedSubquests.save(completedSub);
 		if (maybeSub.get().getVerificationType().equals("NONE")) {
-			if (participants.getRemainingSubquestsForQuestId(userPrincipal.getId(), maybeSub.get()
-			                                                                                .getParentQuest()
-			                                                                                .getId()) == 0) {
-				CompletedQuest cq = new CompletedQuest();
-				cq.setUser(participant.get());
-				cq.setQuest(maybeSub.get().getParentQuest());
-				cq.setPoints(maybeSub.get().getParentQuest().getPoints());
-				completedQuests.save(cq);
-				participant.get().setPoints(participant.get().getPoints() + cq.getPoints());
-				participants.save(participant.get());
-			}
+			questService.tryCompleteQuest(participant.get(), maybeSub.get().getParentQuest());
 		}
 		return ResponseEntity.ok(CompletedSubquestDTO.of(completedSub));
 	}
@@ -111,15 +104,7 @@ public class QuestCompletionController {
 			completedSubquests.save(subquest);
 			CompletedSubquestDTO res = CompletedSubquestDTO.of(subquest);
 			@NonNull QuestParticipant user = subquest.getUser();
-			if(participants.getRemainingSubquestsForQuestId(user.getId(), subquest.getSubquest().getParentQuest().getId()) == 0) {
-				CompletedQuest cq = new CompletedQuest();
-				cq.setUser(user);
-				cq.setQuest(subquest.getSubquest().getParentQuest());
-				cq.setPoints(subquest.getSubquest().getParentQuest().getPoints());
-				completedQuests.save(cq);
-				user.setPoints(user.getPoints() + cq.getPoints());
-				participants.save(user);
-			}
+			questService.tryCompleteQuest(user, subquest.getSubquest().getParentQuest());
 			return ResponseEntity.ok(res);
 		} else {
 			if (subquest.isVerified()) {
@@ -153,6 +138,6 @@ public class QuestCompletionController {
 		}
 		CompletedSubquest subquest = completedSub.get();
 		completedSubquests.delete(subquest);
-		return new ResponseEntity(HttpStatus.OK);
+		return new ResponseEntity<>(HttpStatus.OK);
 	}
 }

@@ -7,7 +7,7 @@ import com.theteam.questerium.models.Quest;
 import com.theteam.questerium.models.QuestGroup;
 import com.theteam.questerium.models.QuestParticipant;
 import com.theteam.questerium.models.Subquest;
-import com.theteam.questerium.repositories.CompletedQuestsRepository;
+import com.theteam.questerium.repositories.CompletedQuestRepository;
 import com.theteam.questerium.repositories.GroupRepository;
 import com.theteam.questerium.repositories.QuestParticipantRepository;
 import com.theteam.questerium.repositories.QuestRepository;
@@ -43,14 +43,14 @@ public class ParticipantsController {
 	@Autowired
 	private final SecurityService security;
 	@Autowired
-	private final CompletedQuestsRepository completedQuests;
+	private final CompletedQuestRepository completedQuests;
 
 	private final Random randomGen = new Random();
 
 	public ParticipantsController(QuestParticipantRepository participants,
 	                              GroupRepository groups, QuestRepository quests, SHA512Service encrypter,
 	                              SecurityService security,
-	                              SHA512Service encryptor, CompletedQuestsRepository completedQuests) {
+	                              SHA512Service encryptor, CompletedQuestRepository completedQuests) {
 		this.participants = participants;
 		this.groups = groups;
 		this.quests = quests;
