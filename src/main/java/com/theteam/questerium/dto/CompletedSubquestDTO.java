@@ -8,6 +8,7 @@ import lombok.Value;
 @Value
 @Builder
 public class CompletedSubquestDTO {
+	long id;
 	QuestParticipantDTO user;
 	SubquestDTO subquest;
 	@NonNull String answer;
@@ -15,6 +16,7 @@ public class CompletedSubquestDTO {
 
 	public static CompletedSubquestDTO of(CompletedSubquest subquest) {
 		return CompletedSubquestDTO.builder()
+		                           .id(subquest.getId())
 		                           .user(QuestParticipantDTO.of(subquest.getUser()))
 		                           .subquest(SubquestDTO.of(subquest.getSubquest()))
 		                           .answer(subquest.getAnswer())

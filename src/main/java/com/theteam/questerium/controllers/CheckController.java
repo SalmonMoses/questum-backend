@@ -1,5 +1,8 @@
 package com.theteam.questerium.controllers;
 
+import com.google.api.client.util.IOUtils;
+import com.jlefebure.spring.boot.minio.MinioException;
+import com.jlefebure.spring.boot.minio.MinioService;
 import com.theteam.questerium.models.QuestGroupOwner;
 import com.theteam.questerium.models.QuestParticipant;
 import com.theteam.questerium.repositories.GroupOwnerRepository;
@@ -12,6 +15,7 @@ import com.theteam.questerium.security.GroupOwnerPrincipal;
 import com.theteam.questerium.security.ParticipantPrincipal;
 import com.theteam.questerium.services.SHA512Service;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -20,6 +24,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URLConnection;
+import java.nio.file.Path;
 import java.util.Optional;
 
 @RestController
@@ -33,6 +42,8 @@ public class CheckController {
 	private GroupRepository groups;
 	@Autowired
 	private QuestParticipantRepository participants;
+	@Autowired
+	private MinioService minioService;
 
 	public CheckController(GroupRepository groups, QuestParticipantRepository participants,
 	                       GroupOwnerRepository owners, SHA512Service encryptor) {
@@ -92,5 +103,10 @@ public class CheckController {
 		} else {
 			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 		}
+	}
+
+	@GetMapping("/minio")
+	public void checkMinio(HttpServletResponse res) throws MinioException, IOException {
+
 	}
 }
