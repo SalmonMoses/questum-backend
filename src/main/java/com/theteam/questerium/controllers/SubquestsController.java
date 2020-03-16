@@ -9,6 +9,7 @@ import com.theteam.questerium.repositories.QuestRepository;
 import com.theteam.questerium.repositories.SubquestRepository;
 import com.theteam.questerium.requests.AddSubquestRequest;
 import com.theteam.questerium.requests.ChangeSubquestRequest;
+import com.theteam.questerium.services.QuestService;
 import com.theteam.questerium.services.SecurityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -34,6 +35,8 @@ public class SubquestsController {
 	private final SubquestRepository subquests;
 	@Autowired
 	private final SecurityService security;
+	@Autowired
+	private QuestService questService;
 
 	public SubquestsController(GroupRepository groups, GroupOwnerRepository owners, QuestRepository quests,
 	                           SubquestRepository subquests, SecurityService security) {
@@ -55,7 +58,11 @@ public class SubquestsController {
 		if (!security.hasAccessToTheGroup(principal, quest.get().getGroup())) {
 			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
-		return ResponseEntity.ok(quest.get().getSubquests().stream().map(SubquestDTO::of).collect(Collectors.toList()));
+		return ResponseEntity.ok(quest.get()
+		                              .getSubquests()
+		                              .stream()
+		                              .map(SubquestDTO::of)
+		                              .collect(Collectors.toList()));
 	}
 
 	@PostMapping("/quests/{quest_id}/subquests")
@@ -76,6 +83,13 @@ public class SubquestsController {
 		subquest.setOrder(order);
 		subquest.setVerificationType(req.getVerification());
 		subquest.setParentQuest(quest.get());
+		if (req.getExpectedAnswer() != null) {
+			if (req.getVerification().equalsIgnoreCase("TEXT")) {
+				subquest.setExpectedAnswer(req.getExpectedAnswer());
+			} else {
+				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+			}
+		}
 		quest.get().getSubquests().add(subquest);
 		subquests.save(subquest);
 		return new ResponseEntity<>(SubquestDTO.of(subquest), HttpStatus.CREATED);
@@ -87,10 +101,10 @@ public class SubquestsController {
 	                                                  Authentication auth) {
 		Object principal = auth.getPrincipal();
 		Optional<Subquest> subquestOpt = subquests.findById(id);
-		if(subquestOpt.isEmpty()) {
+		if (subquestOpt.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
-		if(!security.hasAccessToTheGroup(principal, subquestOpt.get().getParentQuest().getGroup())) {
+		if (!security.hasAccessToTheGroup(principal, subquestOpt.get().getParentQuest().getGroup())) {
 			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
 		Subquest subquest = subquestOpt.get();
@@ -100,7 +114,41 @@ public class SubquestsController {
 		if (req.getVerificationType() != null) {
 			subquest.setVerificationType(req.getVerificationType());
 		}
+		if (req.getExpectedAnswer() != null) {
+			if (req.getExpectedAnswer().equalsIgnoreCase("TEXT")) {
+				subquest.setExpectedAnswer(req.getExpectedAnswer());
+			} else {
+				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+			}
+		}
 		subquests.save(subquest);
 		return new ResponseEntity<SubquestDTO>(SubquestDTO.of(subquest), HttpStatus.OK);
+	}
+
+	@DeleteMapping("/subquests/{id}")
+	@PreAuthorize("hasRole('ROLE_OWNER')")
+	public ResponseEntity<SubquestDTO> deleteSubquest(@PathVariable long id,
+	                                                  Authentication auth) {
+		Object principal = auth.getPrincipal();
+		Optional<Subquest> subquestOpt = subquests.findById(id);
+		if (subquestOpt.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		if (!security.hasAccessToTheGroup(principal, subquestOpt.get().getParentQuest().getGroup())) {
+			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+		}
+		Subquest subquest = subquestOpt.get();
+		subquests.delete(subquest);
+		subquests.findSubquestsByParentQuest_IdAndOrderGreaterThan(subquest.getParentQuest()
+		                                                                   .getId(), subquest.getOrder())
+		         .forEach(sub -> {
+			         sub.setOrder(sub.getOrder() - 1);
+			         subquests.save(sub);
+		         });
+		subquest.getParentQuest()
+		        .getGroup()
+		        .getParticipants()
+		        .forEach(p -> questService.tryCompleteQuest(p, subquest.getParentQuest()));
+		return new ResponseEntity<SubquestDTO>(HttpStatus.OK);
 	}
 }

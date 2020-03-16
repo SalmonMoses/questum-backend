@@ -1,30 +1,23 @@
 package com.theteam.questerium.controllers;
 
-import com.google.api.client.util.IOUtils;
-import com.jlefebure.spring.boot.minio.MinioException;
-import com.jlefebure.spring.boot.minio.MinioService;
 import com.theteam.questerium.dto.CompletedSubquestDTO;
-import com.theteam.questerium.models.*;
+import com.theteam.questerium.models.CompletedSubquest;
+import com.theteam.questerium.models.QuestGroup;
+import com.theteam.questerium.models.QuestParticipant;
+import com.theteam.questerium.models.Subquest;
 import com.theteam.questerium.repositories.*;
 import com.theteam.questerium.requests.SubmitQuestAnswerRequest;
 import com.theteam.questerium.requests.VerifySubquestRequest;
-import com.theteam.questerium.security.GroupOwnerPrincipal;
 import com.theteam.questerium.security.ParticipantPrincipal;
+import com.theteam.questerium.services.QuestService;
 import com.theteam.questerium.services.SecurityService;
-import lombok.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URLConnection;
-import java.nio.file.Path;
 import java.util.Optional;
 
 @RestController
@@ -40,9 +33,9 @@ public class QuestCompletionController {
 	@Autowired
 	private final CompletedSubquestsRepository completedSubquests;
 	@Autowired
-	private CompletedQuestsRepository completedQuests;
+	private CompletedQuestRepository completedQuests;
 	@Autowired
-	private MinioService minio;
+	private QuestService questService;
 	@Autowired
 	private SecurityService security;
 
@@ -74,7 +67,7 @@ public class QuestCompletionController {
 		}
 		CompletedSubquest completedSub = new CompletedSubquest();
 		Optional<QuestParticipant> participant = participants.findById(userPrincipal.getId());
-		if (maybeSub.get().getVerificationType().equals("NONE")) {
+		if (maybeSub.get().getVerificationType().equalsIgnoreCase("NONE")) {
 			if (!req.getAnswer().equals("")) {
 				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 			}
@@ -82,20 +75,19 @@ public class QuestCompletionController {
 		completedSub.setUser(participant.get());
 		completedSub.setSubquest(maybeSub.get());
 		completedSub.setAnswer(req.getAnswer());
-		completedSub.setVerified(maybeSub.get().getVerificationType().equals("NONE"));
-		completedSubquests.save(completedSub);
-		if (maybeSub.get().getVerificationType().equals("NONE")) {
-			if (participants.getRemainingSubquestsForQuestId(userPrincipal.getId(), maybeSub.get()
-			                                                                                .getParentQuest()
-			                                                                                .getId()) == 0) {
-				CompletedQuest cq = new CompletedQuest();
-				cq.setUser(participant.get());
-				cq.setQuest(maybeSub.get().getParentQuest());
-				cq.setPoints(maybeSub.get().getParentQuest().getPoints());
-				completedQuests.save(cq);
-				participant.get().setPoints(participant.get().getPoints() + cq.getPoints());
-				participants.save(participant.get());
-			}
+		completedSub.setVerified(false);
+		if (maybeSub.get().getVerificationType().equalsIgnoreCase("NONE")) {
+			completedSub.setVerified(true);
+			completedSubquests.save(completedSub);
+			questService.tryCompleteQuest(participant.get(), maybeSub.get().getParentQuest());
+		} else if (maybeSub.get().getVerificationType().equalsIgnoreCase("TEXT") && req.getAnswer()
+		                                                                               .equals(maybeSub.get()
+		                                                                                               .getExpectedAnswer())) {
+			completedSub.setVerified(true);
+			completedSubquests.save(completedSub);
+			questService.tryCompleteQuest(participant.get(), maybeSub.get().getParentQuest());
+		} else {
+			completedSubquests.save(completedSub);
 		}
 		return ResponseEntity.ok(CompletedSubquestDTO.of(completedSub));
 	}
@@ -105,13 +97,11 @@ public class QuestCompletionController {
 	public ResponseEntity<CompletedSubquestDTO> verifyQuestAnswer(@PathVariable("group_id") long groupId,
 	                                                              @RequestBody VerifySubquestRequest req,
 	                                                              Authentication auth) {
-		String ownerEmail = ((GroupOwnerPrincipal) auth.getPrincipal()).getEmail();
-		Optional<QuestGroupOwner> owner = owners.findByEmail(ownerEmail);
 		Optional<QuestGroup> group = groups.findById(groupId);
 		if (group.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
-		if (!group.get().getOwner().equals(owner.get())) {
+		if (!security.hasAccessToTheGroup(auth.getPrincipal(), group.get())) {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
 		Optional<CompletedSubquest> completedSub = completedSubquests.findByUser_IdAndSubquest_Id(req.getUserId(),
@@ -120,22 +110,12 @@ public class QuestCompletionController {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
 		CompletedSubquest subquest = completedSub.get();
-		if (req.isVerified()) {
+		/*if (req.isVerified()) {
 			subquest.setVerified(true);
 			completedSubquests.save(subquest);
 			CompletedSubquestDTO res = CompletedSubquestDTO.of(subquest);
 			@NonNull QuestParticipant user = subquest.getUser();
-			if (participants.getRemainingSubquestsForQuestId(user.getId(), subquest.getSubquest()
-			                                                                       .getParentQuest()
-			                                                                       .getId()) == 0) {
-				CompletedQuest cq = new CompletedQuest();
-				cq.setUser(user);
-				cq.setQuest(subquest.getSubquest().getParentQuest());
-				cq.setPoints(subquest.getSubquest().getParentQuest().getPoints());
-				completedQuests.save(cq);
-				user.setPoints(user.getPoints() + cq.getPoints());
-				participants.save(user);
-			}
+			questService.tryCompleteQuest(user, subquest.getSubquest().getParentQuest());
 			return ResponseEntity.ok(res);
 		} else {
 			if (subquest.isVerified()) {
@@ -143,39 +123,16 @@ public class QuestCompletionController {
 			}
 			completedSubquests.delete(subquest);
 			return new ResponseEntity<>(HttpStatus.OK);
+		}*/
+		if (subquest.isVerified()) {
+			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
-	}
-
-	@GetMapping("groups/{group_id}/verification")
-	@PreAuthorize("hasRole('ROLE_OWNER')")
-	public void getQuestAnswer(@PathVariable("group_id") long groupId,
-	                           @RequestParam("verification_id") long verificationId, Authentication auth,
-	                           HttpServletResponse res) throws MinioException, IOException {
-		Optional<QuestGroup> group = groups.findById(groupId);
-		if (group.isEmpty()) {
-			res.setStatus(404);
-			return;
-		}
-		if (security.hasAccessToTheGroup(auth.getPrincipal(), group.get())) {
-			res.setStatus(401);
-			return;
-		}
-		Optional<CompletedSubquest> completedSub = completedSubquests.findById(verificationId);
-		if (completedSub.isEmpty()) {
-			res.setStatus(404);
-			return;
-		}
-
-		long filename = completedSub.get().getId();
-
-		InputStream inputStream = minio.get(Path.of("verifications/" + filename));
-		InputStreamResource inputStreamResource = new InputStreamResource(inputStream);
-
-		res.addHeader("Content-disposition", "attachment;filename=" + filename);
-		res.setContentType(URLConnection.guessContentTypeFromStream(inputStream));
-
-		IOUtils.copy(inputStream, res.getOutputStream());
-		res.flushBuffer();
+		subquest.setVerified(true);
+		completedSubquests.save(subquest);
+		CompletedSubquestDTO res = CompletedSubquestDTO.of(subquest);
+		QuestParticipant user = subquest.getUser();
+		questService.tryCompleteQuest(user, subquest.getSubquest().getParentQuest());
+		return ResponseEntity.ok(res);
 	}
 
 	@PutMapping("groups/{group_id}/reject")
@@ -183,13 +140,11 @@ public class QuestCompletionController {
 	public ResponseEntity<CompletedSubquestDTO> rejectQuestAnswer(@PathVariable("group_id") long groupId,
 	                                                              @RequestParam("verification_id") long verificationId,
 	                                                              Authentication auth) {
-		String ownerEmail = ((GroupOwnerPrincipal) auth.getPrincipal()).getEmail();
-		Optional<QuestGroupOwner> owner = owners.findByEmail(ownerEmail);
 		Optional<QuestGroup> group = groups.findById(groupId);
 		if (group.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
-		if (!group.get().getOwner().equals(owner.get())) {
+		if (!security.hasAccessToTheGroup(auth.getPrincipal(), group.get())) {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
 		Optional<CompletedSubquest> completedSub = completedSubquests.findById(verificationId);
@@ -201,6 +156,12 @@ public class QuestCompletionController {
 		}
 		CompletedSubquest subquest = completedSub.get();
 		completedSubquests.delete(subquest);
-		return new ResponseEntity(HttpStatus.OK);
+		return new ResponseEntity<>(HttpStatus.OK);
+	}
+
+	@GetMapping("/groups/{group_id}/answer")
+	@PreAuthorize("hasRole('ROLE_OWNER')")
+	public void getSubquestAnswer(@PathVariable("group_id") long groupId, Authentication auth) {
+		
 	}
 }

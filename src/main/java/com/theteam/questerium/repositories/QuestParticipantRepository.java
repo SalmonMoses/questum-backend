@@ -26,8 +26,8 @@ public interface QuestParticipantRepository extends JpaRepository<QuestParticipa
 			"         JOIN participants p ON p.group_id = q.group_id\n" +
 			"         LEFT JOIN completed_subquests cq\n" +
 			"                   ON (p.id = cq.user_id AND sub.id = cq.subquest_id)\n" +
-			"WHERE p.id = 10\n" +
-			"  AND q.id = 13\n" +
+			"WHERE p.id = :userId\n" +
+			"  AND q.id = :questId\n" +
 			"  AND (cq.verified IS NULL OR cq.verified = 0)", nativeQuery = true)
 	long getRemainingSubquestsForQuestId(long userId, long questId);
 }

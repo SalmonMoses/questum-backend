@@ -8,4 +8,5 @@ import lombok.NoArgsConstructor;
 public class ChangeSubquestRequest {
 	private String desc;
 	private String verificationType;
+	private String expectedAnswer;
 }
