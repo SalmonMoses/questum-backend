@@ -107,6 +107,15 @@ public class CheckController {
 
 	@GetMapping("/minio")
 	public void checkMinio(HttpServletResponse res) throws MinioException, IOException {
+		InputStream inputStream = minioService.get(Path.of("test.png"));
+		InputStreamResource inputStreamResource = new InputStreamResource(inputStream);
 
+		// Set the content type and attachment header.
+		res.addHeader("Content-disposition", "attachment;filename=test.png");
+		res.setContentType(URLConnection.guessContentTypeFromName("test.png"));
+
+		// Copy the stream to the response's output stream.
+		IOUtils.copy(inputStream, res.getOutputStream());
+		res.flushBuffer();
 	}
 }
