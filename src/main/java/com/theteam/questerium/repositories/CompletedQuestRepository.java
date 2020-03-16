@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 
-public interface CompletedQuestsRepository extends JpaRepository<CompletedQuest, Long> {
+public interface CompletedQuestRepository extends JpaRepository<CompletedQuest, Long> {
 	List<CompletedQuest> findAllByUser_Id(long id);
 
 	@Query("SELECT SUM(q.points) FROM CompletedQuest q WHERE q.user.id = :id")

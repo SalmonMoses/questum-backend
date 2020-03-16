@@ -23,6 +23,9 @@ public class Subquest extends Auditable {
 	@Column(name = "verification_type")
 	private String verificationType;
 
+	@Column(name = "expected_answer")
+	private String expectedAnswer;
+
 	@NonNull
 	@Column(name = "order_num")
 	private Long order;
