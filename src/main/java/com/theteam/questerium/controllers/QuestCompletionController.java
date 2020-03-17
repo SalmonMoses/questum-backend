@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLConnection;
 import java.nio.file.Path;
+import java.util.Objects;
 import java.util.Optional;
 
 @RestController
@@ -64,8 +65,12 @@ public class QuestCompletionController {
 	                                                              @RequestBody SubmitQuestAnswerRequest req,
 	                                                              Authentication auth) {
 		ParticipantPrincipal userPrincipal = (ParticipantPrincipal) auth.getPrincipal();
-		if (groups.findById(groupId).isEmpty()) {
+		Optional<QuestGroup> group = groups.findById(groupId);
+		if (group.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		if (!security.hasAccessToTheGroup(userPrincipal, group.get())) {
+			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
 		Optional<Subquest> maybeSub = subquests.findById(req.getSubquestId());
 		if (maybeSub.isEmpty()) {
@@ -101,13 +106,46 @@ public class QuestCompletionController {
 		return ResponseEntity.ok(CompletedSubquestDTO.of(completedSub));
 	}
 
-	@PutMapping("groups/{group_id}/submit")
+	@PutMapping(value = "groups/{group_id}/submit")
+	@PreAuthorize("hasRole('ROLE_PARTICIPANT')")
 	public ResponseEntity<?> submitQuestPhotoAnswer(@PathVariable("group_id") long groupId,
 	                                                @RequestParam("verification_id") long verificationId,
-	                                                @RequestParam("answer") MultipartFile answerFile,
+	                                                @RequestPart("answer") MultipartFile answerFile,
 	                                                Authentication auth) {
-//		return ResponseEntity.ok(CompletedSubquestDTO.of(completedSub));
-		return ResponseEntity.ok(null);
+		ParticipantPrincipal userPrincipal = (ParticipantPrincipal) auth.getPrincipal();
+		Optional<QuestGroup> group = groups.findById(groupId);
+		if (group.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		if (!security.hasAccessToTheGroup(userPrincipal, group.get())) {
+			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+		}
+		Optional<CompletedSubquest> maybeCompletedSubquest = completedSubquests.findById(verificationId);
+		if (maybeCompletedSubquest.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		CompletedSubquest completedSub = maybeCompletedSubquest.get();
+		if (completedSub.getSubquest().getParentQuest().getGroup().getId() != groupId) {
+			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+		}
+		if(!completedSub.getSubquest().getVerificationType().equalsIgnoreCase("IMAGE")) {
+			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+		}
+
+		String filename = "answers/" + String.valueOf(verificationId);
+
+		try {
+			if (!Objects.requireNonNull(answerFile.getContentType()).startsWith("image/")) {
+				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+			}
+			minioService.upload(Path.of(filename), answerFile.getInputStream(), answerFile.getContentType());
+		} catch (MinioException e) {
+			throw new IllegalStateException("The file cannot be upload on the internal storage. Please retry later",
+			                                e);
+		} catch (IOException e) {
+			throw new IllegalStateException("The file cannot be read", e);
+		}
+		return ResponseEntity.ok(CompletedSubquestDTO.of(completedSub));
 	}
 
 	@PutMapping("groups/{group_id}/verify")
