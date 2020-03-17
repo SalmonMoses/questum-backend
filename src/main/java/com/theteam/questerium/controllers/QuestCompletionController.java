@@ -4,13 +4,10 @@ import com.google.api.client.util.IOUtils;
 import com.jlefebure.spring.boot.minio.MinioException;
 import com.jlefebure.spring.boot.minio.MinioService;
 import com.theteam.questerium.dto.CompletedSubquestDTO;
-import com.theteam.questerium.models.CompletedSubquest;
-import com.theteam.questerium.models.QuestGroup;
-import com.theteam.questerium.models.QuestParticipant;
-import com.theteam.questerium.models.Subquest;
+import com.theteam.questerium.models.*;
 import com.theteam.questerium.repositories.*;
 import com.theteam.questerium.requests.SubmitQuestAnswerRequest;
-import com.theteam.questerium.requests.VerifySubquestRequest;
+import com.theteam.questerium.security.GroupOwnerPrincipal;
 import com.theteam.questerium.security.ParticipantPrincipal;
 import com.theteam.questerium.services.QuestService;
 import com.theteam.questerium.services.SecurityService;
@@ -116,8 +113,10 @@ public class QuestCompletionController {
 	@PutMapping("groups/{group_id}/verify")
 	@PreAuthorize("hasRole('ROLE_OWNER')")
 	public ResponseEntity<CompletedSubquestDTO> verifyQuestAnswer(@PathVariable("group_id") long groupId,
-	                                                              @RequestBody VerifySubquestRequest req,
+	                                                              @RequestParam("verification_id") long verificationId,
 	                                                              Authentication auth) {
+		String ownerEmail = ((GroupOwnerPrincipal) auth.getPrincipal()).getEmail();
+		Optional<QuestGroupOwner> owner = owners.findByEmail(ownerEmail);
 		Optional<QuestGroup> group = groups.findById(groupId);
 		if (group.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -125,8 +124,7 @@ public class QuestCompletionController {
 		if (!security.hasAccessToTheGroup(auth.getPrincipal(), group.get())) {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
-		Optional<CompletedSubquest> completedSub = completedSubquests.findByUser_IdAndSubquest_Id(req.getUserId(),
-		                                                                                          req.getSubquestId());
+		Optional<CompletedSubquest> completedSub = completedSubquests.findById(verificationId);
 		if (completedSub.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
@@ -161,11 +159,13 @@ public class QuestCompletionController {
 	public ResponseEntity<CompletedSubquestDTO> rejectQuestAnswer(@PathVariable("group_id") long groupId,
 	                                                              @RequestParam("verification_id") long verificationId,
 	                                                              Authentication auth) {
+		String ownerEmail = ((GroupOwnerPrincipal) auth.getPrincipal()).getEmail();
+		Optional<QuestGroupOwner> owner = owners.findByEmail(ownerEmail);
 		Optional<QuestGroup> group = groups.findById(groupId);
 		if (group.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
-		if (!security.hasAccessToTheGroup(auth.getPrincipal(), group.get())) {
+		if (!group.get().getOwner().equals(owner.get())) {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
 		Optional<CompletedSubquest> completedSub = completedSubquests.findById(verificationId);
