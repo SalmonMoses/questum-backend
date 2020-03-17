@@ -21,6 +21,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -78,7 +79,7 @@ public class QuestCompletionController {
 		}
 		CompletedSubquest completedSub = new CompletedSubquest();
 		Optional<QuestParticipant> participant = participants.findById(userPrincipal.getId());
-		if (maybeSub.get().getVerificationType().equalsIgnoreCase("NONE")) {
+		if (!maybeSub.get().getVerificationType().equalsIgnoreCase("TEXT")) {
 			if (!req.getAnswer().equals("")) {
 				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 			}
@@ -101,6 +102,15 @@ public class QuestCompletionController {
 			completedSubquests.save(completedSub);
 		}
 		return ResponseEntity.ok(CompletedSubquestDTO.of(completedSub));
+	}
+
+	@PutMapping("groups/{group_id}/submit")
+	public ResponseEntity<?> submitQuestPhotoAnswer(@PathVariable("group_id") long groupId,
+	                                                @RequestParam("verification_id") long verificationId,
+	                                                @RequestParam("answer") MultipartFile answerFile,
+	                                                Authentication auth) {
+//		return ResponseEntity.ok(CompletedSubquestDTO.of(completedSub));
+		return ResponseEntity.ok(null);
 	}
 
 	@PutMapping("groups/{group_id}/verify")
@@ -194,7 +204,8 @@ public class QuestCompletionController {
 			return;
 		}
 		switch (cq.get().getSubquest().getVerificationType()) {
-			case "NONE": return;
+			case "NONE":
+				return;
 			case "TEXT": {
 				String answer = cq.get().getAnswer();
 				res.setContentType("text/plain");
