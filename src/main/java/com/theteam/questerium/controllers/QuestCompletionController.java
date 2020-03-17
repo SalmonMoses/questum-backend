@@ -4,7 +4,6 @@ import com.theteam.questerium.dto.CompletedSubquestDTO;
 import com.theteam.questerium.models.*;
 import com.theteam.questerium.repositories.*;
 import com.theteam.questerium.requests.SubmitQuestAnswerRequest;
-import com.theteam.questerium.requests.VerifySubquestRequest;
 import com.theteam.questerium.security.GroupOwnerPrincipal;
 import com.theteam.questerium.security.ParticipantPrincipal;
 import com.theteam.questerium.services.QuestService;
@@ -90,7 +89,7 @@ public class QuestCompletionController {
 	@PutMapping("groups/{group_id}/verify")
 	@PreAuthorize("hasRole('ROLE_OWNER')")
 	public ResponseEntity<CompletedSubquestDTO> verifyQuestAnswer(@PathVariable("group_id") long groupId,
-	                                                              @RequestBody VerifySubquestRequest req,
+	                                                              @RequestParam("verification_id") long verificationId,
 	                                                              Authentication auth) {
 		String ownerEmail = ((GroupOwnerPrincipal) auth.getPrincipal()).getEmail();
 		Optional<QuestGroupOwner> owner = owners.findByEmail(ownerEmail);
@@ -101,8 +100,7 @@ public class QuestCompletionController {
 		if (!group.get().getOwner().equals(owner.get())) {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
-		Optional<CompletedSubquest> completedSub = completedSubquests.findByUser_IdAndSubquest_Id(req.getUserId(),
-		                                                                                          req.getSubquestId());
+		Optional<CompletedSubquest> completedSub = completedSubquests.findById(verificationId);
 		if (completedSub.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
