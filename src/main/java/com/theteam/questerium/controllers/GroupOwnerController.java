@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -25,6 +26,7 @@ import java.io.InputStream;
 import java.net.URLConnection;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -137,5 +139,35 @@ public class GroupOwnerController {
 		// Copy the stream to the response's output stream.
 		IOUtils.copy(inputStream, res.getOutputStream());
 		res.flushBuffer();
+	}
+
+	@PutMapping("/{id}/avatar")
+	@PreAuthorize("hasRole('ROLE_OWNER')")
+	public ResponseEntity<?> updateAvatar(@RequestParam("avatar") MultipartFile newAvatar, @PathVariable long id,
+	                                      Authentication auth) {
+		String ownerEmail = ((GroupOwnerPrincipal) auth.getPrincipal()).getEmail();
+		Optional<QuestGroupOwner> user = owners.findByEmail(ownerEmail);
+		Optional<QuestGroupOwner> owner = owners.findById(id);
+		if (owner.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		if (!user.get().equals(owner.get())) {
+			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+		}
+
+		String filename = "avatars/owners/" + String.valueOf(owner.get().getId());
+
+		try {
+			if (!Objects.requireNonNull(newAvatar.getContentType()).startsWith("image/")) {
+				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+			}
+			minioService.upload(Path.of(filename), newAvatar.getInputStream(), newAvatar.getContentType());
+			return new ResponseEntity<>(HttpStatus.OK);
+		} catch (MinioException e) {
+			throw new IllegalStateException("The file cannot be upload on the internal storage. Please retry later",
+			                                e);
+		} catch (IOException e) {
+			throw new IllegalStateException("The file cannot be read", e);
+		}
 	}
 }
