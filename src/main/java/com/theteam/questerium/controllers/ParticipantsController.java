@@ -28,6 +28,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -35,6 +36,7 @@ import java.io.InputStream;
 import java.net.URLConnection;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
 import java.util.stream.Collectors;
@@ -237,5 +239,35 @@ public class ParticipantsController {
 		// Copy the stream to the response's output stream.
 		IOUtils.copy(inputStream, res.getOutputStream());
 		res.flushBuffer();
+	}
+
+	@PutMapping("participants/{id}/avatar")
+	@PreAuthorize("hasRole('ROLE_PARTICIPANT')")
+	public ResponseEntity<?> updateAvatar(@RequestParam("avatar") MultipartFile newAvatar, @PathVariable long id,
+	                                      Authentication auth) {
+		ParticipantPrincipal principal = (ParticipantPrincipal) auth.getPrincipal();
+		Optional<QuestParticipant> participant = participants.findById(id);
+		if (participant.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		QuestParticipant participantObj = participant.get();
+		if (principal.getId() != id) {
+			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+		}
+
+		String filename = "avatars/participants/" + String.valueOf(participantObj.getId());
+
+		try {
+			if (!Objects.requireNonNull(newAvatar.getContentType()).startsWith("image/")) {
+				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+			}
+			minioService.upload(Path.of(filename), newAvatar.getInputStream(), newAvatar.getContentType());
+			return new ResponseEntity<>(HttpStatus.OK);
+		} catch (MinioException e) {
+			throw new IllegalStateException("The file cannot be upload on the internal storage. Please retry later",
+			                                e);
+		} catch (IOException e) {
+			throw new IllegalStateException("The file cannot be read", e);
+		}
 	}
 }
