@@ -1,5 +1,8 @@
 package com.theteam.questerium.controllers;
 
+import com.google.api.client.util.IOUtils;
+import com.jlefebure.spring.boot.minio.MinioException;
+import com.jlefebure.spring.boot.minio.MinioService;
 import com.theteam.questerium.dto.CompletedSubquestDTO;
 import com.theteam.questerium.models.*;
 import com.theteam.questerium.repositories.*;
@@ -7,13 +10,22 @@ import com.theteam.questerium.requests.SubmitQuestAnswerRequest;
 import com.theteam.questerium.security.GroupOwnerPrincipal;
 import com.theteam.questerium.security.ParticipantPrincipal;
 import com.theteam.questerium.services.QuestService;
+import com.theteam.questerium.services.SecurityService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URLConnection;
+import java.nio.file.Path;
+import java.util.Objects;
 import java.util.Optional;
 
 @RestController
@@ -32,6 +44,10 @@ public class QuestCompletionController {
 	private CompletedQuestRepository completedQuests;
 	@Autowired
 	private QuestService questService;
+	@Autowired
+	private SecurityService security;
+	@Autowired
+	private MinioService minioService;
 
 	public QuestCompletionController(GroupRepository groups, GroupOwnerRepository owners,
 	                                 QuestParticipantRepository participants, SubquestRepository subquests,
@@ -49,8 +65,12 @@ public class QuestCompletionController {
 	                                                              @RequestBody SubmitQuestAnswerRequest req,
 	                                                              Authentication auth) {
 		ParticipantPrincipal userPrincipal = (ParticipantPrincipal) auth.getPrincipal();
-		if (groups.findById(groupId).isEmpty()) {
+		Optional<QuestGroup> group = groups.findById(groupId);
+		if (group.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		if (!security.hasAccessToTheGroup(userPrincipal, group.get())) {
+			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
 		Optional<Subquest> maybeSub = subquests.findById(req.getSubquestId());
 		if (maybeSub.isEmpty()) {
@@ -61,7 +81,7 @@ public class QuestCompletionController {
 		}
 		CompletedSubquest completedSub = new CompletedSubquest();
 		Optional<QuestParticipant> participant = participants.findById(userPrincipal.getId());
-		if (maybeSub.get().getVerificationType().equalsIgnoreCase("NONE")) {
+		if (!maybeSub.get().getVerificationType().equalsIgnoreCase("TEXT")) {
 			if (!req.getAnswer().equals("")) {
 				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 			}
@@ -86,6 +106,48 @@ public class QuestCompletionController {
 		return ResponseEntity.ok(CompletedSubquestDTO.of(completedSub));
 	}
 
+	@PutMapping(value = "groups/{group_id}/submit")
+	@PreAuthorize("hasRole('ROLE_PARTICIPANT')")
+	public ResponseEntity<?> submitQuestPhotoAnswer(@PathVariable("group_id") long groupId,
+	                                                @RequestParam("verification_id") long verificationId,
+	                                                @RequestPart("answer") MultipartFile answerFile,
+	                                                Authentication auth) {
+		ParticipantPrincipal userPrincipal = (ParticipantPrincipal) auth.getPrincipal();
+		Optional<QuestGroup> group = groups.findById(groupId);
+		if (group.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		if (!security.hasAccessToTheGroup(userPrincipal, group.get())) {
+			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+		}
+		Optional<CompletedSubquest> maybeCompletedSubquest = completedSubquests.findById(verificationId);
+		if (maybeCompletedSubquest.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		CompletedSubquest completedSub = maybeCompletedSubquest.get();
+		if (completedSub.getSubquest().getParentQuest().getGroup().getId() != groupId) {
+			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+		}
+		if(!completedSub.getSubquest().getVerificationType().equalsIgnoreCase("IMAGE")) {
+			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+		}
+
+		String filename = "answers/" + String.valueOf(verificationId);
+
+		try {
+			if (!Objects.requireNonNull(answerFile.getContentType()).startsWith("image/")) {
+				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+			}
+			minioService.upload(Path.of(filename), answerFile.getInputStream(), answerFile.getContentType());
+		} catch (MinioException e) {
+			throw new IllegalStateException("The file cannot be upload on the internal storage. Please retry later",
+			                                e);
+		} catch (IOException e) {
+			throw new IllegalStateException("The file cannot be read", e);
+		}
+		return ResponseEntity.ok(CompletedSubquestDTO.of(completedSub));
+	}
+
 	@PutMapping("groups/{group_id}/verify")
 	@PreAuthorize("hasRole('ROLE_OWNER')")
 	public ResponseEntity<CompletedSubquestDTO> verifyQuestAnswer(@PathVariable("group_id") long groupId,
@@ -97,7 +159,7 @@ public class QuestCompletionController {
 		if (group.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
-		if (!group.get().getOwner().equals(owner.get())) {
+		if (!security.hasAccessToTheGroup(auth.getPrincipal(), group.get())) {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
 		Optional<CompletedSubquest> completedSub = completedSubquests.findById(verificationId);
@@ -154,5 +216,56 @@ public class QuestCompletionController {
 		CompletedSubquest subquest = completedSub.get();
 		completedSubquests.delete(subquest);
 		return new ResponseEntity<>(HttpStatus.OK);
+	}
+
+	@GetMapping("/groups/{group_id}/answer")
+	@PreAuthorize("hasRole('ROLE_OWNER')")
+	public void getSubquestAnswer(@PathVariable("group_id") long groupId,
+	                              @RequestParam("verification_id") long verificationId, Authentication auth,
+	                              HttpServletResponse res) throws MinioException, IOException {
+		Optional<QuestGroup> group = groups.findById(groupId);
+		if (group.isEmpty()) {
+			res.setStatus(404);
+			return;
+		}
+		if (!security.hasAccessToTheGroup(auth.getPrincipal(), group.get())) {
+			res.setStatus(401);
+			return;
+		}
+		Optional<CompletedSubquest> cq = completedSubquests.findById(verificationId);
+		if (cq.isEmpty()) {
+			res.setStatus(404);
+			return;
+		}
+		if (!cq.get().getSubquest().getParentQuest().getGroup().equals(group.get())) {
+			res.setStatus(400);
+			return;
+		}
+		switch (cq.get().getSubquest().getVerificationType()) {
+			case "NONE":
+				return;
+			case "TEXT": {
+				String answer = cq.get().getAnswer();
+				res.setContentType("text/plain");
+				res.getOutputStream().print(answer);
+				res.flushBuffer();
+				return;
+			}
+			case "IMAGE": {
+				String filename = "answers/" + String.valueOf(cq.get().getId());
+
+				InputStream inputStream = minioService.get(Path.of(filename));
+				InputStreamResource inputStreamResource = new InputStreamResource(inputStream);
+
+				// Set the content type and attachment header.
+				res.addHeader("Content-disposition", "attachment;filename=" + filename);
+				res.setContentType(URLConnection.guessContentTypeFromStream(inputStream));
+
+				// Copy the stream to the response's output stream.
+				IOUtils.copy(inputStream, res.getOutputStream());
+				res.flushBuffer();
+				return;
+			}
+		}
 	}
 }
