@@ -19,6 +19,7 @@ import com.theteam.questerium.requests.ChangeOwnerRequest;
 import com.theteam.questerium.responses.ScoreResponse;
 import com.theteam.questerium.security.GroupOwnerPrincipal;
 import com.theteam.questerium.security.ParticipantPrincipal;
+import com.theteam.questerium.services.EmailService;
 import com.theteam.questerium.services.SHA512Service;
 import com.theteam.questerium.services.SecurityService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,6 +58,8 @@ public class ParticipantsController {
 	private final CompletedQuestRepository completedQuests;
 	@Autowired
 	private MinioService minioService;
+	@Autowired
+	private EmailService emailService;
 
 	private final Random randomGen = new Random();
 
@@ -106,9 +109,15 @@ public class ParticipantsController {
 		participant.setGroup(group.get());
 		participant.setPoints(0);
 		int passwordNum = randomGen.nextInt(10000) + 1000;
-		String passwordEncrypt = encrypter.saltAndEncrypt(req.getEmail(), Integer.toString(passwordNum));
+		String password = Integer.toString(passwordNum);
+		String passwordEncrypt = encrypter.saltAndEncrypt(req.getEmail(), password);
 		participant.setPassword(passwordEncrypt);
 		participants.save(participant);
+		try {
+			emailService.sendParticipantSignUpEmail(participant, password);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		return new ResponseEntity(QuestParticipantDTO.of(participant), HttpStatus.CREATED);
 	}
 
