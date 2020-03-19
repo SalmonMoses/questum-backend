@@ -7,8 +7,10 @@ import com.sendgrid.SendGrid;
 import com.sendgrid.helpers.mail.Mail;
 import com.sendgrid.helpers.mail.objects.Email;
 import com.sendgrid.helpers.mail.objects.Personalization;
+import com.theteam.questerium.models.QuestGroup;
 import com.theteam.questerium.models.QuestGroupOwner;
 import com.theteam.questerium.models.QuestParticipant;
+import lombok.NonNull;
 import lombok.extern.java.Log;
 import org.springframework.stereotype.Service;
 
@@ -20,7 +22,7 @@ public class EmailService {
 	private final String API_KEY = "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";
 	private Email sender = new Email("Questerium@questerium.app");
 	private final String SIGN_UP_TMPLT_ID = "d-faf43ba3ce12489da4f196ba8d8ea18c";
-	private final String USR_SIGN_UP_TMPLT_ID = "";
+	private final String USR_SIGN_UP_TMPLT_ID = "d-6154bf4dea994ba1b034239b9f0f199a";
 
 	public void sendSignUpMessage(QuestGroupOwner owner) throws IOException {
 		String subject = "Your sign up on Questerium";
@@ -47,7 +49,9 @@ public class EmailService {
 		}
 	}
 
-	public void sendParticipantSignUpEmail(QuestParticipant participant) throws IOException {
+	public void sendParticipantSignUpEmail(QuestParticipant participant, String password) throws IOException {
+		@NonNull QuestGroup participantGroup = participant.getGroup();
+
 		String subject = "You were added to the group on Questerium";
 		Mail mail = new Mail();
 		mail.setFrom(sender);
@@ -57,6 +61,11 @@ public class EmailService {
 		Personalization personalization = new Personalization();
 		personalization.addTo(new Email(participant.getEmail()));
 		personalization.addDynamicTemplateData("name", participant.getName());
+		personalization.addDynamicTemplateData("owner_name", participantGroup.getOwner().getName());
+		personalization.addDynamicTemplateData("group_name", participantGroup.getName());
+		personalization.addDynamicTemplateData("group_id", participantGroup.getId());
+		personalization.addDynamicTemplateData("email", participant.getEmail());
+		personalization.addDynamicTemplateData("password", password);
 		mail.addPersonalization(personalization);
 
 		SendGrid sg = new SendGrid(API_KEY);
