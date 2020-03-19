@@ -10,6 +10,7 @@ import com.theteam.questerium.repositories.RefreshTokenRepository;
 import com.theteam.questerium.repositories.TokenRepository;
 import com.theteam.questerium.requests.SignupRequest;
 import com.theteam.questerium.responses.OwnerSignupResponse;
+import com.theteam.questerium.services.EmailService;
 import com.theteam.questerium.services.SHA512Service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -37,14 +39,17 @@ public class SignupController {
 	private final RefreshTokenRepository refreshTokens;
 	@Autowired
 	private final SHA512Service encryptor;
+	@Autowired
+	private final EmailService emailService;
 
 	public SignupController(GroupRepository groups, GroupOwnerRepository owners, TokenRepository tokens,
-	                        RefreshTokenRepository refreshTokens, SHA512Service encryptor) {
+	                        RefreshTokenRepository refreshTokens, SHA512Service encryptor, EmailService emailService) {
 		this.groups = groups;
 		this.owners = owners;
 		this.tokens = tokens;
 		this.refreshTokens = refreshTokens;
 		this.encryptor = encryptor;
+		this.emailService = emailService;
 	}
 
 	@PostMapping("/owner")
@@ -79,6 +84,11 @@ public class SignupController {
 		refreshTokens.save(refreshToken);
 		QuestGroupOwnerDTO dto = QuestGroupOwnerDTO.of(owner);
 		OwnerSignupResponse res = new OwnerSignupResponse(token, refreshTokenStr, dto, "");
+		try {
+			emailService.sendSignUpMessage(owner);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		return new ResponseEntity<>(res, HttpStatus.CREATED);
 	}
 }
