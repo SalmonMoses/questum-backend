@@ -60,11 +60,14 @@ public class LoginController {
 			if (refTok.isEmpty()) {
 				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 			}
+			if(refTok.get().getExpirationDate().getTime() < System.currentTimeMillis()) {
+				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+			}
 			if (!refTok.get().getType().equals("OWNER")) {
 				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 			}
 			Optional<QuestGroupOwner> owner = owners.findById(refTok.get().getOwner());
-			return owner.map(own -> ResponseEntity.ok(getOwnerLoginResponse(owner.get())))
+			return owner.map(own -> ResponseEntity.ok(getOwnerLoginResponse(owner.get(), true)))
 			            .orElseGet(() -> new ResponseEntity<>(HttpStatus.UNAUTHORIZED));
 		} else if (!req.getEmail().equals("")) {
 			Optional<QuestGroupOwner> owner = owners.findByEmail(req.getEmail());
@@ -75,7 +78,7 @@ public class LoginController {
 			if (!password.equalsIgnoreCase(owner.get().getPassword())) {
 				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 			}
-			return ResponseEntity.ok(getOwnerLoginResponse(owner.get()));
+			return ResponseEntity.ok(getOwnerLoginResponse(owner.get(), false));
 		} else {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
@@ -88,11 +91,14 @@ public class LoginController {
 			if (refTok.isEmpty()) {
 				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 			}
+			if(refTok.get().getExpirationDate().getTime() < System.currentTimeMillis()) {
+				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+			}
 			if (!refTok.get().getType().equals("USER")) {
 				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 			}
 			Optional<QuestParticipant> user = participants.findById(refTok.get().getOwner());
-			return user.map(own -> ResponseEntity.ok(getParticipantLoginResponse(user.get())))
+			return user.map(own -> ResponseEntity.ok(getParticipantLoginResponse(user.get(), true)))
 			           .orElseGet(() -> new ResponseEntity<>(HttpStatus.UNAUTHORIZED));
 		} else if (!req.getEmail().equals("") && req.getGroupId() > 0) {
 			Optional<QuestGroup> group = groups.findById(req.getGroupId());
@@ -107,17 +113,16 @@ public class LoginController {
 			if (!password.equalsIgnoreCase(user.get().getPassword())) {
 				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 			}
-			return ResponseEntity.ok(getParticipantLoginResponse(user.get()));
+			return ResponseEntity.ok(getParticipantLoginResponse(user.get(), false));
 		} else {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
 	}
 
-	private OwnerLoginResponse getOwnerLoginResponse(QuestGroupOwner owner) {
+	private OwnerLoginResponse getOwnerLoginResponse(QuestGroupOwner owner, boolean withRefTok) {
 		Optional<AuthToken> tok = tokens.findByOwnerAndType(owner.getId(), "OWNER");
 		tok.ifPresent(tokens::delete);
 		Optional<RefreshToken> refTok = refreshTokens.findByOwnerAndType(owner.getId(), "OWNER");
-		refTok.ifPresent(refreshTokens::delete);
 		String token = UUID.randomUUID().toString();
 		Timestamp expirationDate = Timestamp.from(Instant.now().plus(1, ChronoUnit.DAYS));
 		AuthToken newToken = new AuthToken();
@@ -126,23 +131,36 @@ public class LoginController {
 		newToken.setExpirationDate(expirationDate);
 		newToken.setType("OWNER");
 		tokens.save(newToken);
-		String refreshTokenStr = UUID.randomUUID().toString();
-		Timestamp refreshExpirationDate = Timestamp.from(Instant.now().plus(30, ChronoUnit.DAYS));
-		RefreshToken refreshToken = new RefreshToken();
-		refreshToken.setRefreshToken(refreshTokenStr);
-		refreshToken.setOwner(owner.getId());
-		refreshToken.setExpirationDate(refreshExpirationDate);
-		refreshToken.setType("OWNER");
-		refreshTokens.save(refreshToken);
+		RefreshToken refreshToken = refTok.orElseGet(() -> {
+			String refreshTokenStr = UUID.randomUUID().toString();
+			Timestamp refreshExpirationDate = Timestamp.from(Instant.now().plus(30, ChronoUnit.DAYS));
+			RefreshToken newRefreshToken = new RefreshToken();
+			newRefreshToken.setRefreshToken(refreshTokenStr);
+			newRefreshToken.setOwner(owner.getId());
+			newRefreshToken.setExpirationDate(refreshExpirationDate);
+			newRefreshToken.setType("OWNER");
+			refreshTokens.save(newRefreshToken);
+			return newRefreshToken;
+		});
+		if(refreshToken.getExpirationDate().getTime() < System.currentTimeMillis()) {
+			if(!withRefTok) {
+				String refreshTokenStr = UUID.randomUUID().toString();
+				Timestamp refreshExpirationDate = Timestamp.from(Instant.now().plus(30, ChronoUnit.DAYS));
+				refreshToken.setRefreshToken(refreshTokenStr);
+				refreshToken.setExpirationDate(refreshExpirationDate);
+				refreshTokens.save(refreshToken);
+			} else {
+				return null;
+			}
+		}
 		QuestGroupOwnerDTO dto = QuestGroupOwnerDTO.of(owner);
-		return new OwnerLoginResponse(token, refreshTokenStr, dto);
+		return new OwnerLoginResponse(token, refreshToken.getRefreshToken(), dto);
 	}
 
-	private ParticipantLoginResponse getParticipantLoginResponse(QuestParticipant user) {
+	private ParticipantLoginResponse getParticipantLoginResponse(QuestParticipant user, boolean withRefTok) {
 		Optional<AuthToken> tok = tokens.findByOwnerAndType(user.getId(), "USER");
 		tok.ifPresent(tokens::delete);
 		Optional<RefreshToken> refTok = refreshTokens.findByOwnerAndType(user.getId(), "USER");
-		refTok.ifPresent(refreshTokens::delete);
 		String token = UUID.randomUUID().toString();
 		Timestamp expirationDate = Timestamp.from(Instant.now().plus(1, ChronoUnit.DAYS));
 		AuthToken newToken = new AuthToken();
@@ -151,15 +169,29 @@ public class LoginController {
 		newToken.setExpirationDate(expirationDate);
 		newToken.setType("USER");
 		tokens.save(newToken);
-		String refreshTokenStr = UUID.randomUUID().toString();
-		Timestamp refreshExpirationDate = Timestamp.from(Instant.now().plus(30, ChronoUnit.DAYS));
-		RefreshToken refreshToken = new RefreshToken();
-		refreshToken.setRefreshToken(refreshTokenStr);
-		refreshToken.setOwner(user.getId());
-		refreshToken.setExpirationDate(refreshExpirationDate);
-		refreshToken.setType("USER");
-		refreshTokens.save(refreshToken);
+		RefreshToken refreshToken = refTok.orElseGet(() -> {
+			String refreshTokenStr = UUID.randomUUID().toString();
+			Timestamp refreshExpirationDate = Timestamp.from(Instant.now().plus(30, ChronoUnit.DAYS));
+			RefreshToken newRefreshToken = new RefreshToken();
+			newRefreshToken.setRefreshToken(refreshTokenStr);
+			newRefreshToken.setOwner(user.getId());
+			newRefreshToken.setExpirationDate(refreshExpirationDate);
+			newRefreshToken.setType("OWNER");
+			refreshTokens.save(newRefreshToken);
+			return newRefreshToken;
+		});
+		if(refreshToken.getExpirationDate().getTime() < System.currentTimeMillis()) {
+			if(!withRefTok) {
+				String refreshTokenStr = UUID.randomUUID().toString();
+				Timestamp refreshExpirationDate = Timestamp.from(Instant.now().plus(30, ChronoUnit.DAYS));
+				refreshToken.setRefreshToken(refreshTokenStr);
+				refreshToken.setExpirationDate(refreshExpirationDate);
+				refreshTokens.save(refreshToken);
+			} else {
+				return null;
+			}
+		}
 		QuestParticipantDTO dto = QuestParticipantDTO.of(user);
-		return new ParticipantLoginResponse(token, refreshTokenStr, dto);
+		return new ParticipantLoginResponse(token, refreshToken.getRefreshToken(), dto);
 	}
 }
