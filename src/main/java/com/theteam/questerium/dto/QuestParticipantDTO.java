@@ -12,7 +12,6 @@ public class QuestParticipantDTO {
 	String email;
 	int points;
 	long groupId;
-	String profilePicLink;
 
 	public static QuestParticipantDTO of(QuestParticipant p) {
 		return QuestParticipantDTO.builder()
@@ -21,7 +20,6 @@ public class QuestParticipantDTO {
 		                          .email(p.getEmail())
 		                          .groupId(p.getGroup().getId())
 		                          .points(p.getPoints())
-		                          .profilePicLink("")
 		                          .build();
 	}
 }
