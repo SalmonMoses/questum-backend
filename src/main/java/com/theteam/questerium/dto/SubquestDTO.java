@@ -17,6 +17,8 @@ public class SubquestDTO {
 	@NonNull
 	private String verificationType;
 
+	private String expectedAnswer;
+
 	@NonNull
 	private Long order;
 
@@ -25,6 +27,7 @@ public class SubquestDTO {
 		                  .id(subquest.getId())
 		                  .desc(subquest.getDescription())
 		                  .verificationType(subquest.getVerificationType())
+		                  .expectedAnswer(subquest.getExpectedAnswer())
 		                  .order(subquest.getOrder())
 		                  .build();
 	}
