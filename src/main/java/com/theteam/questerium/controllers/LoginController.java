@@ -176,7 +176,7 @@ public class LoginController {
 			newRefreshToken.setRefreshToken(refreshTokenStr);
 			newRefreshToken.setOwner(user.getId());
 			newRefreshToken.setExpirationDate(refreshExpirationDate);
-			newRefreshToken.setType("OWNER");
+			newRefreshToken.setType("USER");
 			refreshTokens.save(newRefreshToken);
 			return newRefreshToken;
 		});
