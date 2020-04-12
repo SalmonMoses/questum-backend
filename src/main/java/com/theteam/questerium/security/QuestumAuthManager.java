@@ -1,6 +1,5 @@
 package com.theteam.questerium.security;
 
-import com.theteam.questerium.repositories.TokenRepository;
 import com.theteam.questerium.services.JwtService;
 import com.theteam.questerium.services.QuestumAuthService;
 import io.jsonwebtoken.Claims;
@@ -20,9 +19,6 @@ import java.util.ArrayList;
 
 @Component
 public class QuestumAuthManager implements AuthenticationManager {
-	@Autowired
-	TokenRepository tokens;
-
 	@Autowired
 	QuestumAuthService authService;
 
