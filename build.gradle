@@ -29,6 +29,7 @@ dependencies {
     compile 'io.jsonwebtoken:jjwt-api:0.11.1'
     compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
     compile 'io.minio:minio:6.0.13'
+    compile 'io.jsonwebtoken:jjwt-jackson:0.10.5'
 //    implementation 'io.springfox:springfox-swagger2:2.9.2'
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
