@@ -3,8 +3,6 @@ package com.theteam.questerium.services;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.theteam.questerium.models.QuestGroupOwner;
 import com.theteam.questerium.models.QuestParticipant;
-import com.theteam.questerium.repositories.TokenKeyRepository;
-import com.theteam.questerium.security.JwtTokenKeyResolver;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
@@ -21,11 +19,7 @@ import java.util.Date;
 @Service
 public class JwtService {
 	@Autowired
-	private TokenKeyRepository tokenKeys;
-	@Autowired
 	private ObjectMapper objectMapper;
-	@Autowired
-	private JwtTokenKeyResolver keyResolver;
 
 	private Key secret = Keys.hmacShaKeyFor("9b88ab4b639fc4ba54d635b9c68c27e5".getBytes());
 

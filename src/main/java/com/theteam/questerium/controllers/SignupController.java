@@ -4,8 +4,6 @@ import com.theteam.questerium.dto.QuestGroupOwnerDTO;
 import com.theteam.questerium.models.QuestGroupOwner;
 import com.theteam.questerium.repositories.GroupOwnerRepository;
 import com.theteam.questerium.repositories.GroupRepository;
-import com.theteam.questerium.repositories.RefreshTokenRepository;
-import com.theteam.questerium.repositories.TokenRepository;
 import com.theteam.questerium.requests.SignupRequest;
 import com.theteam.questerium.responses.OwnerSignupResponse;
 import com.theteam.questerium.services.EmailService;
@@ -35,8 +33,7 @@ public class SignupController {
 	@Autowired
 	private final JwtService jwtService;
 
-	public SignupController(GroupRepository groups, GroupOwnerRepository owners, TokenRepository tokens,
-	                        RefreshTokenRepository refreshTokens, SHA512Service encryptor, EmailService emailService,
+	public SignupController(GroupRepository groups, GroupOwnerRepository owners, SHA512Service encryptor, EmailService emailService,
 	                        JwtService jwtService) {
 		this.groups = groups;
 		this.owners = owners;

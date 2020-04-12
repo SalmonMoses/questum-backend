@@ -4,7 +4,9 @@ import com.theteam.questerium.dto.QuestGroupOwnerDTO;
 import com.theteam.questerium.dto.QuestParticipantDTO;
 import com.theteam.questerium.models.QuestGroupOwner;
 import com.theteam.questerium.models.QuestParticipant;
-import com.theteam.questerium.repositories.*;
+import com.theteam.questerium.repositories.GroupOwnerRepository;
+import com.theteam.questerium.repositories.GroupRepository;
+import com.theteam.questerium.repositories.QuestParticipantRepository;
 import com.theteam.questerium.requests.OwnerLoginRequest;
 import com.theteam.questerium.requests.ParticipantLoginRequest;
 import com.theteam.questerium.responses.OwnerLoginResponse;
@@ -40,8 +42,7 @@ public class LoginController {
 
 	public LoginController(GroupRepository groups, GroupOwnerRepository owners,
 	                       QuestParticipantRepository participants,
-	                       TokenRepository tokens,
-	                       RefreshTokenRepository refreshTokens, JwtService jwtService, SHA512Service encryptor) {
+	                       JwtService jwtService, SHA512Service encryptor) {
 		this.groups = groups;
 		this.owners = owners;
 		this.participants = participants;
