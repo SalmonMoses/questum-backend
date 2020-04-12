@@ -1,6 +1,5 @@
 package com.theteam.questerium.services;
 
-import com.theteam.questerium.models.AuthToken;
 import com.theteam.questerium.models.QuestGroup;
 import com.theteam.questerium.models.QuestGroupOwner;
 import com.theteam.questerium.models.QuestParticipant;
@@ -8,6 +7,8 @@ import com.theteam.questerium.repositories.GroupOwnerRepository;
 import com.theteam.questerium.repositories.QuestParticipantRepository;
 import com.theteam.questerium.security.GroupOwnerPrincipal;
 import com.theteam.questerium.security.ParticipantPrincipal;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -22,8 +23,8 @@ public class QuestumAuthService {
 	@Autowired
 	QuestParticipantRepository participants;
 
-	public GroupOwnerPrincipal handleOwnerLogin(AuthToken token) {
-		QuestGroupOwner owner = owners.findById(token.getOwner()).get();
+	public GroupOwnerPrincipal handleOwnerLogin(Jws<Claims> token) {
+		QuestGroupOwner owner = owners.findByEmail(token.getBody().getSubject()).get();
 		List<Long> groupIds = owner.getQuestGroups()
 		                           .stream()
 		                           .map(QuestGroup::getId)
@@ -31,8 +32,11 @@ public class QuestumAuthService {
 		return new GroupOwnerPrincipal(owner.getEmail(), owner.getName(), groupIds);
 	}
 
-	public ParticipantPrincipal handleUserLogin(AuthToken token) {
-		QuestParticipant user = participants.findById(token.getOwner()).get();
+	public ParticipantPrincipal handleUserLogin(Jws<Claims> token) {
+		QuestParticipant user = participants.findByEmailAndGroup_Id(token.getBody().getSubject(), token.getBody()
+		                                                                                               .get("group",
+		                                                                                                    Long.class))
+		                                    .get();
 		return new ParticipantPrincipal(user.getId(), user.getEmail(), user.getName(), user.getGroup().getId());
 	}
 }

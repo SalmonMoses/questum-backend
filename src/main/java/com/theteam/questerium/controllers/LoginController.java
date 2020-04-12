@@ -50,7 +50,14 @@ public class LoginController {
 	@PostMapping("/owner")
 	public ResponseEntity<OwnerLoginResponse> groupOwnerLogin(@RequestBody OwnerLoginRequest req) {
 		if (req.getRefreshToken() != null) {
-			return null;
+			var claims = jwtService.parseOwnerRefreshToken(req.getRefreshToken());
+			Optional<QuestGroupOwner> owner = owners.findByEmail(claims.getBody().getSubject());
+			if(owner.isEmpty()) return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+			String jwtAccessToken = jwtService.makeOwnerAccessToken(owner.get());
+			String jwtRefreshToken = jwtService.makeOwnerRefreshToken(owner.get());
+			return ResponseEntity.ok(new OwnerLoginResponse(jwtAccessToken,
+			                                                jwtRefreshToken,
+			                                                QuestGroupOwnerDTO.of(owner.get())));
 		} else if (!req.getEmail().equals("")) {
 			Optional<QuestGroupOwner> owner = owners.findByEmail(req.getEmail());
 			if (owner.isEmpty()) {
@@ -61,7 +68,7 @@ public class LoginController {
 				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 			}
 			String jwtAccessToken = jwtService.makeOwnerAccessToken(owner.get());
-			String jwtRefreshToken = "";
+			String jwtRefreshToken = jwtService.makeOwnerRefreshToken(owner.get());
 			return ResponseEntity.ok(new OwnerLoginResponse(jwtAccessToken,
 			                                                jwtRefreshToken,
 			                                                QuestGroupOwnerDTO.of(owner.get())));
