@@ -44,7 +44,7 @@ public class QuestumAuthManager implements AuthenticationManager {
 				return new UsernamePasswordAuthenticationToken(details, jwsToken,
 				                                               authorities);
 			}
-			case "user": {
+			case "participant": {
 				ParticipantPrincipal details = authService.handleUserLogin(jwsToken);
 				ArrayList<SimpleGrantedAuthority> authorities = new ArrayList<>();
 				authorities.add(new SimpleGrantedAuthority("ROLE_PARTICIPANT"));

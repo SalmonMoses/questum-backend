@@ -2,6 +2,7 @@ package com.theteam.questerium.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.theteam.questerium.models.QuestGroupOwner;
+import com.theteam.questerium.models.QuestParticipant;
 import com.theteam.questerium.repositories.TokenKeyRepository;
 import com.theteam.questerium.security.JwtTokenKeyResolver;
 import io.jsonwebtoken.Claims;
@@ -66,6 +67,34 @@ public class JwtService {
 		           .compact();
 	}
 
+	public String makeParticipantAccessToken(QuestParticipant participant) {
+		Date issuedAt = new Date();
+		return Jwts.builder()
+                   .setSubject(participant.getEmail())
+                   .setIssuedAt(issuedAt)
+                   .setExpiration(Date.from(issuedAt.toInstant().plus(1, ChronoUnit.DAYS)))
+		           .claim("group", participant.getGroup().getId())
+                   .claim("rol", "participant")
+                   .claim("typ", "acc")
+                   .signWith(secret)
+                   .serializeToJsonWith(new JacksonSerializer<>(objectMapper))
+                   .compact();
+	}
+
+	public String makeParticipantRefreshToken(QuestParticipant participant) {
+		Date issuedAt = new Date();
+		return Jwts.builder()
+		           .setSubject(participant.getEmail())
+		           .setIssuedAt(issuedAt)
+		           .setExpiration(Date.from(issuedAt.toInstant().plus(1, ChronoUnit.DAYS)))
+		           .claim("group", participant.getGroup().getId())
+		           .claim("rol", "participant")
+		           .claim("typ", "ref")
+		           .signWith(secret)
+		           .serializeToJsonWith(new JacksonSerializer<>(objectMapper))
+		           .compact();
+	}
+
 	public Jws<Claims> parseOwnerRefreshToken(String token) {
 		return Jwts.parserBuilder()
 //		           .setSigningKeyResolver(keyResolver)
@@ -77,12 +106,22 @@ public class JwtService {
 		           .parseClaimsJws(token);
 	}
 
+	public Jws<Claims> parseParticipantRefreshToken(String token) {
+		return Jwts.parserBuilder()
+//		           .setSigningKeyResolver(keyResolver)
+                   .setSigningKey(secret)
+                   .require("typ", "ref")
+                   .require("rol", "participant")
+                   .deserializeJsonWith(new JacksonDeserializer<>(objectMapper))
+                   .build()
+                   .parseClaimsJws(token);
+	}
+
 	public Jws<Claims> parseAccessToken(String token) {
 		return Jwts.parserBuilder()
 //		           .setSigningKeyResolver(keyResolver)
                    .setSigningKey(secret)
                    .require("typ", "acc")
-                   .require("rol", "owner")
                    .deserializeJsonWith(new JacksonDeserializer<>(objectMapper))
                    .build()
                    .parseClaimsJws(token);
