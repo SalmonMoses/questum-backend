@@ -10,10 +10,10 @@ import java.util.stream.Collectors;
 @Value
 @Builder
 public class ProgressDTO {
-	long progress;
+	double progress;
 	List<SubquestDTO> subquests;
 
-	public static ProgressDTO of(List<Subquest> subquests, long progress) {
+	public static ProgressDTO of(List<Subquest> subquests, double progress) {
 		return ProgressDTO.builder()
 		                  .subquests(subquests.stream()
 		                                      .map(SubquestDTO::of)

@@ -14,13 +14,13 @@ public class CompletedSubquestDTO {
 	@NonNull String answer;
 	boolean verified;
 
-	public static CompletedSubquestDTO of(CompletedSubquest subquest) {
+	public static CompletedSubquestDTO of(CompletedSubquest completedSubquest) {
 		return CompletedSubquestDTO.builder()
-		                           .id(subquest.getId())
-		                           .user(QuestParticipantDTO.of(subquest.getUser()))
-		                           .subquest(SubquestDTO.of(subquest.getSubquest()))
-		                           .answer(subquest.getAnswer())
-		                           .verified(subquest.isVerified())
+		                           .id(completedSubquest.getId())
+		                           .user(QuestParticipantDTO.of(completedSubquest.getUser()))
+		                           .subquest(SubquestDTO.of(completedSubquest.getSubquest()))
+		                           .answer(completedSubquest.getAnswer())
+		                           .verified(completedSubquest.isVerified())
 		                           .build();
 	}
 }
