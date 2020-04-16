@@ -6,14 +6,8 @@ import com.jlefebure.spring.boot.minio.MinioService;
 import com.theteam.questerium.dto.ProgressDTO;
 import com.theteam.questerium.dto.QuestParticipantDTO;
 import com.theteam.questerium.dto.ScoringDTO;
-import com.theteam.questerium.models.Quest;
-import com.theteam.questerium.models.QuestGroup;
-import com.theteam.questerium.models.QuestParticipant;
-import com.theteam.questerium.models.Subquest;
-import com.theteam.questerium.repositories.CompletedQuestRepository;
-import com.theteam.questerium.repositories.GroupRepository;
-import com.theteam.questerium.repositories.QuestParticipantRepository;
-import com.theteam.questerium.repositories.QuestRepository;
+import com.theteam.questerium.models.*;
+import com.theteam.questerium.repositories.*;
 import com.theteam.questerium.requests.AddParticipantRequest;
 import com.theteam.questerium.requests.ChangeOwnerRequest;
 import com.theteam.questerium.responses.ScoreResponse;
@@ -57,6 +51,8 @@ public class ParticipantsController {
 	@Autowired
 	private final CompletedQuestRepository completedQuests;
 	@Autowired
+	private final CompletedSubquestsRepository completedSubquests;
+	@Autowired
 	private MinioService minioService;
 	@Autowired
 	private EmailService emailService;
@@ -66,13 +62,15 @@ public class ParticipantsController {
 	public ParticipantsController(QuestParticipantRepository participants,
 	                              GroupRepository groups, QuestRepository quests, SHA512Service encrypter,
 	                              SecurityService security,
-	                              SHA512Service encryptor, CompletedQuestRepository completedQuests) {
+	                              SHA512Service encryptor, CompletedQuestRepository completedQuests,
+	                              CompletedSubquestsRepository completedSubquests) {
 		this.participants = participants;
 		this.groups = groups;
 		this.quests = quests;
 		this.encrypter = encrypter;
 		this.security = security;
 		this.completedQuests = completedQuests;
+		this.completedSubquests = completedSubquests;
 	}
 
 	@GetMapping("/groups/{id}/participants")
@@ -218,7 +216,11 @@ public class ParticipantsController {
 				.getGroup())) {
 			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
-		long subProgress = participants.getProgressForQuest(id, questId);
+		double subProgress = participants.getProgressForQuest(id, questId);
+		List<CompletedSubquest> completedSubquestsByUser = completedSubquests.findByUser_IdAndQuest_Id(id, questId);
+		if(!completedSubquestsByUser.get(completedSubquestsByUser.size() - 1).isVerified()) {
+			subProgress += 0.5;
+		}
 		List<Subquest> subquests = quest.get().getSubquests();
 		return ResponseEntity.ok(ProgressDTO.of(subquests, subProgress));
 	}
