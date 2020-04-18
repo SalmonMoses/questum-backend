@@ -52,12 +52,11 @@ public class ParticipantsController {
 	private final CompletedQuestRepository completedQuests;
 	@Autowired
 	private final CompletedSubquestsRepository completedSubquests;
+	private final Random randomGen = new Random();
 	@Autowired
 	private MinioService minioService;
 	@Autowired
 	private EmailService emailService;
-
-	private final Random randomGen = new Random();
 
 	public ParticipantsController(QuestParticipantRepository participants,
 	                              GroupRepository groups, QuestRepository quests, SHA512Service encrypter,
@@ -218,8 +217,10 @@ public class ParticipantsController {
 		}
 		double subProgress = participants.getProgressForQuest(id, questId);
 		List<CompletedSubquest> completedSubquestsByUser = completedSubquests.findByUser_IdAndQuest_Id(id, questId);
-		if(!completedSubquestsByUser.get(completedSubquestsByUser.size() - 1).isVerified()) {
-			subProgress += 0.5;
+		if (completedSubquestsByUser.size() != 0) {
+			if (!completedSubquestsByUser.get(completedSubquestsByUser.size() - 1).isVerified()) {
+				subProgress += 0.5;
+			}
 		}
 		List<Subquest> subquests = quest.get().getSubquests();
 		return ResponseEntity.ok(ProgressDTO.of(subquests, subProgress));
