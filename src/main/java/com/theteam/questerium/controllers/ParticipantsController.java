@@ -216,6 +216,9 @@ public class ParticipantsController {
 			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
 		double subProgress = participants.getProgressForQuest(id, questId);
+		double percentage = quest.get().getSubquests().size() > 0
+				? subProgress / quest.get().getSubquests().size()
+				: 0;
 		List<CompletedSubquest> completedSubquestsByUser = completedSubquests.findByUser_IdAndQuest_Id(id, questId);
 		if (completedSubquestsByUser.size() != 0) {
 			if (!completedSubquestsByUser.get(completedSubquestsByUser.size() - 1).isVerified()) {
@@ -223,7 +226,7 @@ public class ParticipantsController {
 			}
 		}
 		List<Subquest> subquests = quest.get().getSubquests();
-		return ResponseEntity.ok(ProgressDTO.of(subquests, subProgress));
+		return ResponseEntity.ok(ProgressDTO.of(subquests, subProgress, percentage));
 	}
 
 	@GetMapping("/participants/{id}/avatar")

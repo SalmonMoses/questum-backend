@@ -11,14 +11,16 @@ import java.util.stream.Collectors;
 @Builder
 public class ProgressDTO {
 	double progress;
+	double percentage;
 	List<SubquestDTO> subquests;
 
-	public static ProgressDTO of(List<Subquest> subquests, double progress) {
+	public static ProgressDTO of(List<Subquest> subquests, double progress, double percentage) {
 		return ProgressDTO.builder()
 		                  .subquests(subquests.stream()
 		                                      .map(SubquestDTO::of)
 		                                      .collect(Collectors.toList()))
 		                  .progress(progress)
+		                  .percentage(percentage)
 		                  .build();
 	}
 }
