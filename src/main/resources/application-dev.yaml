@@ -3,6 +3,12 @@ server:
   tomcat:
     accesslog:
       enabled: true
+  ssl:
+    key-store: classpath:questerium.jks
+    key-store-password: questerium
+    #key-store-type: jks
+    key-alias: questerium
+    key-password: questerium
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
