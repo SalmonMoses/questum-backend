@@ -4,7 +4,7 @@ import lombok.NonNull;
 import lombok.Value;
 
 @Value
-public class ParticipantPrincipal {
+public class ParticipantPrincipal implements IUserPrincipal {
 	@NonNull
 	Long id;
 
