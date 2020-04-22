@@ -8,5 +8,5 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 public class MarkReadRequest {
-	List<Long> notificationsToMark;
+	List<Long> items;
 }

@@ -10,10 +10,11 @@ import org.springframework.stereotype.Component;
 import javax.persistence.Column;
 import java.io.IOException;
 import java.util.Map;
+import java.util.WeakHashMap;
 
 @Component
 public class NotificationBuilder {
-	private enum NotificationTypes {
+	public enum NotificationTypes {
 		COMPLETED_SUBQUEST_OWNER,
 		COMPLETED_QUEST_OWNER,
 		SENT_ANSWER,
@@ -30,7 +31,7 @@ public class NotificationBuilder {
 	private String userType;
 
 	@NonNull
-	private Map<String, String> content;
+	private Map<String, String> content = new WeakHashMap<>();
 
 	public NotificationBuilder type(NotificationTypes type) {
 		this.type = type.name();

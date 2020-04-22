@@ -69,7 +69,7 @@ public class NotificationController {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
 
-		notifications.findAllById(req.getNotificationsToMark()).forEach(n -> {
+		notifications.findAllById(req.getItems()).forEach(n -> {
 			if(n.getUserId() != id || !n.getUserType().equalsIgnoreCase("owner")) return;
 			n.setRead(true);
 			notifications.save(n);
@@ -115,7 +115,7 @@ public class NotificationController {
 			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
 
-		notifications.findAllById(req.getNotificationsToMark()).forEach(n -> {
+		notifications.findAllById(req.getItems()).forEach(n -> {
 			if(n.getUserId() != id || !n.getUserType().equalsIgnoreCase("participant")) return;
 			n.setRead(true);
 			notifications.save(n);
