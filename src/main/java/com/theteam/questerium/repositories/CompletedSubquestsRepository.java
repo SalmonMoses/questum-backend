@@ -9,7 +9,7 @@ import java.util.Optional;
 
 public interface CompletedSubquestsRepository extends JpaRepository<CompletedSubquest, Long> {
 	public Optional<CompletedSubquest> findByUser_IdAndSubquest_Id(long userId, long subquestId);
-	@Query("SELECT q from CompletedSubquest q where q.user.id = :userId and q.subquest.parentQuest.id = " +
+	@Query("SELECT q FROM CompletedSubquest q WHERE q.user.id = :userId AND q.subquest.parentQuest.id = " +
 			":questId")
 	public List<CompletedSubquest> findByUser_IdAndQuest_Id(long userId, long questId);
 }
