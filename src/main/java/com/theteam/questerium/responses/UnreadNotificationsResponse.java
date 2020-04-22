@@ -7,5 +7,5 @@ import java.util.List;
 
 @Value
 public class UnreadNotificationsResponse {
-	List<NotificationDTO> notifications;
+	List<NotificationDTO> items;
 }
