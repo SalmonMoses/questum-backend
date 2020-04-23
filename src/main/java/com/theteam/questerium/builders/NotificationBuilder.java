@@ -71,6 +71,7 @@ public class NotificationBuilder {
 		n.setUserType(this.userType);
 		n.setContent(content);
 		n.setRead(false);
+		n.setSent(false);
 		return n;
 	}
 }
