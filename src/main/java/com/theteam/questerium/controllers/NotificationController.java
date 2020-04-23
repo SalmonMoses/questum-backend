@@ -49,6 +49,36 @@ public class NotificationController {
 		List<Notification> unreadNotifications = notifications.findAllUnreadForUser(id, "OWNER");
 
 		UnreadNotificationsResponse res = new UnreadNotificationsResponse(unreadNotifications.stream()
+		                                                                                     .peek(n -> {
+			                                                                                     n.setSent(true);
+			                                                                                     notifications.save(n);
+		                                                                                     })
+		                                                                                     .map(NotificationDTO::of)
+		                                                                                     .collect(Collectors.toList()));
+		return ResponseEntity.ok(res);
+	}
+
+	@GetMapping("/owner/{id}/new")
+	@PreAuthorize("hasRole('ROLE_OWNER')")
+	public ResponseEntity<UnreadNotificationsResponse> getAllUnsentNotificationsForOwner(@PathVariable long id,
+	                                                                                     Authentication auth) {
+		String ownerEmail = ((GroupOwnerPrincipal) auth.getPrincipal()).getEmail();
+		Optional<QuestGroupOwner> user = owners.findByEmail(ownerEmail);
+		Optional<QuestGroupOwner> owner = owners.findById(id);
+		if (owner.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		if (!user.get().equals(owner.get())) {
+			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+		}
+
+		List<Notification> unreadNotifications = notifications.findAllUnsentForUser(id, "OWNER");
+
+		UnreadNotificationsResponse res = new UnreadNotificationsResponse(unreadNotifications.stream()
+		                                                                                     .peek(n -> {
+			                                                                                     n.setSent(true);
+			                                                                                     notifications.save(n);
+		                                                                                     })
 		                                                                                     .map(NotificationDTO::of)
 		                                                                                     .collect(Collectors.toList()));
 		return ResponseEntity.ok(res);
@@ -70,7 +100,9 @@ public class NotificationController {
 		}
 
 		notifications.findAllById(req.getItems()).forEach(n -> {
-			if(n.getUserId() != id || !n.getUserType().equalsIgnoreCase("owner")) return;
+			if (n.getUserId() != id || !n.getUserType().equalsIgnoreCase("owner")) {
+				return;
+			}
 			n.setRead(true);
 			notifications.save(n);
 		});
@@ -95,6 +127,36 @@ public class NotificationController {
 		List<Notification> unreadNotifications = notifications.findAllUnreadForUser(id, "PARTICIPANT");
 
 		UnreadNotificationsResponse res = new UnreadNotificationsResponse(unreadNotifications.stream()
+		                                                                                     .peek(n -> {
+			                                                                                     n.setSent(true);
+			                                                                                     notifications.save(n);
+		                                                                                     })
+		                                                                                     .map(NotificationDTO::of)
+		                                                                                     .collect(Collectors.toList()));
+		return ResponseEntity.ok(res);
+	}
+
+	@GetMapping("/participants/{id}/new")
+	@PreAuthorize("hasRole('ROLE_PARTICIPANT')")
+	public ResponseEntity<UnreadNotificationsResponse> getAllUnsentNotificationsForParticipant(@PathVariable long id,
+	                                                                                           Authentication auth) {
+		ParticipantPrincipal principal = (ParticipantPrincipal) auth.getPrincipal();
+		Optional<QuestParticipant> participant = participants.findById(id);
+		if (participant.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		QuestParticipant participantObj = participant.get();
+		if (principal.getId() != id) {
+			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+		}
+
+		List<Notification> unreadNotifications = notifications.findAllUnsentForUser(id, "PARTICIPANT");
+
+		UnreadNotificationsResponse res = new UnreadNotificationsResponse(unreadNotifications.stream()
+		                                                                                     .peek(n -> {
+			                                                                                     n.setSent(true);
+			                                                                                     notifications.save(n);
+		                                                                                     })
 		                                                                                     .map(NotificationDTO::of)
 		                                                                                     .collect(Collectors.toList()));
 		return ResponseEntity.ok(res);
@@ -116,7 +178,9 @@ public class NotificationController {
 		}
 
 		notifications.findAllById(req.getItems()).forEach(n -> {
-			if(n.getUserId() != id || !n.getUserType().equalsIgnoreCase("participant")) return;
+			if (n.getUserId() != id || !n.getUserType().equalsIgnoreCase("participant")) {
+				return;
+			}
 			n.setRead(true);
 			notifications.save(n);
 		});
