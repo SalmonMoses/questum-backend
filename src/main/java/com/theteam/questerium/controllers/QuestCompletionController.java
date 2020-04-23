@@ -9,6 +9,7 @@ import com.theteam.questerium.repositories.*;
 import com.theteam.questerium.requests.SubmitQuestAnswerRequest;
 import com.theteam.questerium.security.GroupOwnerPrincipal;
 import com.theteam.questerium.security.ParticipantPrincipal;
+import com.theteam.questerium.services.NotificationService;
 import com.theteam.questerium.services.QuestService;
 import com.theteam.questerium.services.SecurityService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +49,8 @@ public class QuestCompletionController {
 	private SecurityService security;
 	@Autowired
 	private MinioService minioService;
+	@Autowired
+	private NotificationService notificationService;
 
 	public QuestCompletionController(GroupRepository groups, GroupOwnerRepository owners,
 	                                 QuestParticipantRepository participants, SubquestRepository subquests,
@@ -93,14 +96,17 @@ public class QuestCompletionController {
 		if (maybeSub.get().getVerificationType().equalsIgnoreCase("NONE")) {
 			completedSub.setVerified(true);
 			completedSubquests.save(completedSub);
+			notificationService.sendSubquestCompletingNotification(participant.get(), maybeSub.get());
 			questService.tryCompleteQuest(participant.get(), maybeSub.get().getParentQuest());
 		} else if (maybeSub.get().getVerificationType().equalsIgnoreCase("TEXT") && req.getAnswer()
 		                                                                               .equals(maybeSub.get()
 		                                                                                               .getExpectedAnswer())) {
 			completedSub.setVerified(true);
 			completedSubquests.save(completedSub);
+			notificationService.sendSubquestCompletingNotification(participant.get(), maybeSub.get());
 			questService.tryCompleteQuest(participant.get(), maybeSub.get().getParentQuest());
 		} else {
+			notificationService.sendSentAnswerNotification(participant.get(), maybeSub.get());
 			completedSubquests.save(completedSub);
 		}
 		return ResponseEntity.ok(CompletedSubquestDTO.of(completedSub));
@@ -128,7 +134,7 @@ public class QuestCompletionController {
 		if (completedSub.getSubquest().getParentQuest().getGroup().getId() != groupId) {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
-		if(!completedSub.getSubquest().getVerificationType().equalsIgnoreCase("IMAGE")) {
+		if (!completedSub.getSubquest().getVerificationType().equalsIgnoreCase("IMAGE")) {
 			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 		}
 
@@ -186,6 +192,7 @@ public class QuestCompletionController {
 		}
 		subquest.setVerified(true);
 		completedSubquests.save(subquest);
+		notificationService.sendAnswerAcceptedNotification(subquest.getUser(), subquest.getSubquest());
 		CompletedSubquestDTO res = CompletedSubquestDTO.of(subquest);
 		QuestParticipant user = subquest.getUser();
 		questService.tryCompleteQuest(user, subquest.getSubquest().getParentQuest());
@@ -215,6 +222,7 @@ public class QuestCompletionController {
 		}
 		CompletedSubquest subquest = completedSub.get();
 		completedSubquests.delete(subquest);
+		notificationService.sendAnswerRejectedNotification(subquest.getUser(), subquest.getSubquest());
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 

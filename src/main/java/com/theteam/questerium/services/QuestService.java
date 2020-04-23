@@ -14,6 +14,8 @@ public class QuestService {
 	private QuestParticipantRepository participants;
 	@Autowired
 	private CompletedQuestRepository completedQuests;
+	@Autowired
+	private NotificationService notificationService;
 
 	public void tryCompleteQuest(QuestParticipant participant, Quest quest) {
 		long remainingSubquests = participants.getRemainingSubquestsForQuestId(participant.getId(),
@@ -24,6 +26,7 @@ public class QuestService {
 			cq.setQuest(quest);
 			cq.setPoints(quest.getPoints());
 			completedQuests.save(cq);
+			notificationService.sendQuestCompletingNotification(participant, quest);
 			participant.setPoints(participant.getPoints() + cq.getPoints());
 			participants.save(participant);
 		}
