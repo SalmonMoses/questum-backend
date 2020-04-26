@@ -16,6 +16,7 @@ import com.theteam.questerium.security.ParticipantPrincipal;
 import com.theteam.questerium.services.EmailService;
 import com.theteam.questerium.services.SHA512Service;
 import com.theteam.questerium.services.SecurityService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
@@ -37,6 +38,7 @@ import java.util.Random;
 import java.util.stream.Collectors;
 
 @RestController
+@Slf4j
 public class ParticipantsController {
 	@Autowired
 	private final QuestParticipantRepository participants;
@@ -110,9 +112,15 @@ public class ParticipantsController {
 		String passwordEncrypt = encrypter.saltAndEncrypt(req.getEmail(), password);
 		participant.setPassword(passwordEncrypt);
 		participants.save(participant);
+		log.info("Participant #{} was added to group #{} (owner #{})", participant.getId(), group.get()
+		                                                                                         .getId(), group.get()
+		                                                                                                        .getOwner()
+		                                                                                                        .getId());
 		try {
 			emailService.sendParticipantSignUpEmail(participant, password);
 		} catch (IOException e) {
+			log.error("Couldn't send sign up email to participant #{} (group: #{})", participant.getId(), group.get()
+			                                                                                                   .getId());
 			e.printStackTrace();
 		}
 		return new ResponseEntity(QuestParticipantDTO.of(participant), HttpStatus.CREATED);
@@ -162,6 +170,8 @@ public class ParticipantsController {
 			participantObj.setPassword(newPassword);
 		}
 		participants.save(participantObj);
+		log.info("Participant #{} (group: #{}) changed his info", participantObj.getId(), participantObj.getGroup()
+		                                                                                                .getId());
 		return participant
 				.map(QuestParticipantDTO::of)
 				.map(ResponseEntity::ok)
@@ -180,6 +190,7 @@ public class ParticipantsController {
 			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
 		participants.deleteById(id);
+		log.info("Participant #{} (group: #{}) was deleted", id, participant.get().getGroup().getId());
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
@@ -244,16 +255,19 @@ public class ParticipantsController {
 		}
 		String filename = "avatars/participants/" + String.valueOf(participant.get().getId());
 
-		InputStream inputStream = minioService.get(Path.of(filename));
-		InputStreamResource inputStreamResource = new InputStreamResource(inputStream);
+		try {
+			InputStream inputStream = minioService.get(Path.of(filename));
+			InputStreamResource inputStreamResource = new InputStreamResource(inputStream);
 
-		// Set the content type and attachment header.
-		res.addHeader("Content-disposition", "attachment;filename=" + filename);
-		res.setContentType(URLConnection.guessContentTypeFromStream(inputStream));
+			// Set the content type and attachment header.
+			res.addHeader("Content-disposition", "attachment;filename=" + filename);
+			res.setContentType(URLConnection.guessContentTypeFromStream(inputStream));
 
-		// Copy the stream to the response's output stream.
-		IOUtils.copy(inputStream, res.getOutputStream());
-		res.flushBuffer();
+			// Copy the stream to the response's output stream.
+			IOUtils.copy(inputStream, res.getOutputStream());
+			res.flushBuffer();
+		} catch (MinioException ignored) {
+		}
 	}
 
 	@PutMapping("participants/{id}/avatar")
@@ -277,6 +291,9 @@ public class ParticipantsController {
 				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 			}
 			minioService.upload(Path.of(filename), newAvatar.getInputStream(), newAvatar.getContentType());
+			log.info("Participant #{} (group #{}) avatar has been updated", participantObj.getId(),
+			         participantObj.getGroup()
+			                                                                                                      .getId());
 			return new ResponseEntity<>(HttpStatus.OK);
 		} catch (MinioException e) {
 			throw new IllegalStateException("The file cannot be upload on the internal storage. Please retry later",

@@ -17,7 +17,7 @@ public class QuestGroupDTO {
 		                    .id(group.getId())
 		                    .name(group.getName())
 		                    .owner(QuestGroupOwnerDTO.of(group.getOwner()))
-		                    .participantCount(group.getParticipants().size())
+		                    .participantCount(group.getParticipants() != null ? group.getParticipants().size() : 0)
 		                    .build();
 	}
 }

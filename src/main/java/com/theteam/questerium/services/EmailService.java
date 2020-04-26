@@ -11,13 +11,13 @@ import com.theteam.questerium.models.QuestGroup;
 import com.theteam.questerium.models.QuestGroupOwner;
 import com.theteam.questerium.models.QuestParticipant;
 import lombok.NonNull;
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 
 @Service
-@Log
+@Slf4j
 public class EmailService {
 	private final String API_KEY = "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";
 	private Email sender = new Email("Questerium@questerium.app");

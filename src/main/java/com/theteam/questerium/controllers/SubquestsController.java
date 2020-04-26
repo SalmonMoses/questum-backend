@@ -11,6 +11,7 @@ import com.theteam.questerium.requests.AddSubquestRequest;
 import com.theteam.questerium.requests.ChangeSubquestRequest;
 import com.theteam.questerium.services.QuestService;
 import com.theteam.questerium.services.SecurityService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping
+@Slf4j
 public class SubquestsController {
 	@Autowired
 	private final GroupRepository groups;
@@ -92,6 +94,9 @@ public class SubquestsController {
 		}
 		quest.get().getSubquests().add(subquest);
 		subquests.save(subquest);
+		log.info("Subquest #{} was added to quest #{} (group #{})", subquest.getId(), subquest.getParentQuest()
+		                                                                                   .getId(),
+		         subquest.getParentQuest().getGroup().getId());
 		return new ResponseEntity<>(SubquestDTO.of(subquest), HttpStatus.CREATED);
 	}
 
@@ -122,6 +127,7 @@ public class SubquestsController {
 			}
 		}
 		subquests.save(subquest);
+		log.info("Subquest #{} (quest #{}) was updated", subquest.getId(), subquest.getParentQuest().getId());
 		return new ResponseEntity<SubquestDTO>(SubquestDTO.of(subquest), HttpStatus.OK);
 	}
 
@@ -149,6 +155,7 @@ public class SubquestsController {
 		        .getGroup()
 		        .getParticipants()
 		        .forEach(p -> questService.tryCompleteQuest(p, subquest.getParentQuest()));
+		log.info("Subquest #{} (quest #{}) was deleted", subquest.getId(), subquest.getParentQuest().getId());
 		return new ResponseEntity<SubquestDTO>(HttpStatus.OK);
 	}
 }
