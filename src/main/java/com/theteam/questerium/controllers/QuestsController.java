@@ -14,6 +14,7 @@ import com.theteam.questerium.requests.ChangeQuestRequest;
 import com.theteam.questerium.security.GroupOwnerPrincipal;
 import com.theteam.questerium.security.ParticipantPrincipal;
 import com.theteam.questerium.services.SecurityService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +27,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
+@Slf4j
 public class QuestsController {
 	@Autowired
 	private final GroupRepository groups;
@@ -80,6 +82,10 @@ public class QuestsController {
 		quest.setGroup(group.get());
 		quest.setPoints(req.getPoints());
 		quests.save(quest);
+		log.info("Quest #{} was added to group #{} (owner #{})", quest.getId(), group.get()
+		                                                                                         .getId(), group.get()
+		                                                                                                        .getOwner()
+		                                                                                                        .getId());
 		return new ResponseEntity<QuestDTO>(QuestDTO.of(quest), HttpStatus.CREATED);
 	}
 
@@ -128,6 +134,7 @@ public class QuestsController {
 			quest.setDesc(req.getDesc());
 		}
 		quests.save(quest);
+		log.info("Quest #{} (group #{}) was updated", quest.getId(), quest.getGroup().getId());
 		return ResponseEntity.ok(QuestDTO.of(quest));
 	}
 
@@ -144,6 +151,7 @@ public class QuestsController {
 			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
 		quests.delete(questOpt.get());
+		log.info("Quest #{} (group #{}) was deleted", questOpt.get().getId(), questOpt.get().getGroup().getId());
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 }

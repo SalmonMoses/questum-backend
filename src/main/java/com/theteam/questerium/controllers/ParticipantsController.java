@@ -266,7 +266,8 @@ public class ParticipantsController {
 			// Copy the stream to the response's output stream.
 			IOUtils.copy(inputStream, res.getOutputStream());
 			res.flushBuffer();
-		} catch (MinioException ignored) {}
+		} catch (MinioException ignored) {
+		}
 	}
 
 	@PutMapping("participants/{id}/avatar")
@@ -290,6 +291,9 @@ public class ParticipantsController {
 				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 			}
 			minioService.upload(Path.of(filename), newAvatar.getInputStream(), newAvatar.getContentType());
+			log.info("Participant #{} (group #{}) avatar has been updated", participantObj.getId(),
+			         participantObj.getGroup()
+			                                                                                                      .getId());
 			return new ResponseEntity<>(HttpStatus.OK);
 		} catch (MinioException e) {
 			throw new IllegalStateException("The file cannot be upload on the internal storage. Please retry later",

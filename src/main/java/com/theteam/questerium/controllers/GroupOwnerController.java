@@ -169,6 +169,7 @@ public class GroupOwnerController {
 				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 			}
 			minioService.upload(Path.of(filename), newAvatar.getInputStream(), newAvatar.getContentType());
+			log.info("Group owner #{} avatar has been updated", owner.get().getId());
 			return new ResponseEntity<>(HttpStatus.OK);
 		} catch (MinioException e) {
 			throw new IllegalStateException("The file cannot be upload on the internal storage. Please retry later",
