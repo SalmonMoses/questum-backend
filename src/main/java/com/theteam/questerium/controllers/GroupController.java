@@ -16,6 +16,7 @@ import com.theteam.questerium.requests.ChangeGroupRequest;
 import com.theteam.questerium.requests.CreateGroupRequest;
 import com.theteam.questerium.security.GroupOwnerPrincipal;
 import com.theteam.questerium.services.SecurityService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
@@ -37,6 +38,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/groups")
+@Slf4j
 public class GroupController {
 	@Autowired
 	private final GroupRepository groups;
@@ -73,6 +75,7 @@ public class GroupController {
 			questGroup.setName(req.getName());
 			questGroup.setOwner(value);
 			groups.save(questGroup);
+			log.info("Group owner #{} created group #{}", owner.get().getId(), questGroup.getId());
 			return new ResponseEntity<>(QuestGroupDTO.of(questGroup), HttpStatus.CREATED);
 		}).orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
 	}
@@ -124,6 +127,7 @@ public class GroupController {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
 		groups.delete(group.get());
+		log.info("Group owner #{} deleted group #{}", group.get().getOwner().getId(), group.get().getId());
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
@@ -182,16 +186,20 @@ public class GroupController {
 		}
 		String filename = "avatars/groups/" + String.valueOf(group.get().getId());
 
-		InputStream inputStream = minioService.get(Path.of(filename));
-		InputStreamResource inputStreamResource = new InputStreamResource(inputStream);
+		try {
+			InputStream inputStream = minioService.get(Path.of(filename));
+			InputStreamResource inputStreamResource = new InputStreamResource(inputStream);
 
-		// Set the content type and attachment header.
-		res.addHeader("Content-disposition", "attachment;filename=" + filename);
-		res.setContentType(URLConnection.guessContentTypeFromStream(inputStream));
+			// Set the content type and attachment header.
+			res.addHeader("Content-disposition", "attachment;filename=" + filename);
+			res.setContentType(URLConnection.guessContentTypeFromStream(inputStream));
 
-		// Copy the stream to the response's output stream.
-		IOUtils.copy(inputStream, res.getOutputStream());
-		res.flushBuffer();
+			// Copy the stream to the response's output stream.
+			IOUtils.copy(inputStream, res.getOutputStream());
+			res.flushBuffer();
+		} catch (Exception e) {
+
+		}
 	}
 
 	@PutMapping("/{id}/avatar")
