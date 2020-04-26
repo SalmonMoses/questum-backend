@@ -9,6 +9,7 @@ import com.theteam.questerium.responses.OwnerSignupResponse;
 import com.theteam.questerium.services.EmailService;
 import com.theteam.questerium.services.JwtService;
 import com.theteam.questerium.services.SHA512Service;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +22,7 @@ import java.io.IOException;
 
 @RestController
 @RequestMapping("/signup")
+@Slf4j
 public class SignupController {
 	@Autowired
 	private final GroupRepository groups;
