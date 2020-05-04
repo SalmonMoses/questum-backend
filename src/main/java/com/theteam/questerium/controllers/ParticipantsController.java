@@ -205,10 +205,14 @@ public class ParticipantsController {
 			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
 		long participantPoints = completedQuests.getParticipantScoreById(id);
-		List<ScoringDTO> scorings = completedQuests.findAllByUser_Id(id)
-		                                           .stream()
-		                                           .map(ScoringDTO::of)
-		                                           .collect(Collectors.toList());
+//		List<CompletedQuest> completedQuests = this.completedQuests.findAllByUser_Id(id);
+//		if(completedQuests.size() < 1) {
+//			return ResponseEntity.ok(new ScoreResponse(participantPoints, Collections.emptyList()));
+//		}
+		List<ScoringDTO> scorings = this.completedQuests.findAllByUser_Id(id)
+		                                                .stream()
+		                                                .map(ScoringDTO::of)
+		                                                .collect(Collectors.toList());
 		return ResponseEntity.ok(new ScoreResponse(participantPoints, scorings));
 	}
 
@@ -293,7 +297,7 @@ public class ParticipantsController {
 			minioService.upload(Path.of(filename), newAvatar.getInputStream(), newAvatar.getContentType());
 			log.info("Participant #{} (group #{}) avatar has been updated", participantObj.getId(),
 			         participantObj.getGroup()
-			                                                                                                      .getId());
+			                       .getId());
 			return new ResponseEntity<>(HttpStatus.OK);
 		} catch (MinioException e) {
 			throw new IllegalStateException("The file cannot be upload on the internal storage. Please retry later",

@@ -9,6 +9,6 @@ import java.util.List;
 public interface CompletedQuestRepository extends JpaRepository<CompletedQuest, Long> {
 	List<CompletedQuest> findAllByUser_Id(long id);
 
-	@Query("SELECT SUM(q.points) FROM CompletedQuest q WHERE q.user.id = :id")
+	@Query("SELECT p.points FROM QuestParticipant p WHERE p.id = :id")
 	long getParticipantScoreById(long id);
 }
