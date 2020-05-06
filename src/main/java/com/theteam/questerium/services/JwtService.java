@@ -3,12 +3,11 @@ package com.theteam.questerium.services;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.theteam.questerium.models.QuestGroupOwner;
 import com.theteam.questerium.models.QuestParticipant;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.JacksonDeserializer;
 import io.jsonwebtoken.io.JacksonSerializer;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -32,14 +31,14 @@ public class JwtService {
 		Date issuedAt = new Date();
 		return Jwts.builder()
 //		           .setHeaderParam("kid", publicKey.getId())
-		           .setSubject(owner.getEmail())
-		           .setIssuedAt(issuedAt)
-		           .setExpiration(Date.from(issuedAt.toInstant().plus(1, ChronoUnit.DAYS)))
-		           .claim("rol", "owner")
-		           .claim("typ", "acc")
-		           .signWith(secret)
-		           .serializeToJsonWith(new JacksonSerializer<>(objectMapper))
-		           .compact();
+                   .setSubject(owner.getEmail())
+                   .setIssuedAt(issuedAt)
+                   .setExpiration(Date.from(issuedAt.toInstant().plus(1, ChronoUnit.DAYS)))
+                   .claim("rol", "owner")
+                   .claim("typ", "acc")
+                   .signWith(secret)
+                   .serializeToJsonWith(new JacksonSerializer<>(objectMapper))
+                   .compact();
 	}
 
 	public String makeOwnerRefreshToken(QuestGroupOwner owner) {
@@ -51,28 +50,28 @@ public class JwtService {
 		Date issuedAt = new Date();
 		return Jwts.builder()
 //		           .setHeaderParam(JwsHeader.KEY_ID, publicKey.getId())
-		           .setSubject(owner.getEmail())
-		           .setIssuedAt(issuedAt)
-		           .setExpiration(Date.from(issuedAt.toInstant().plus(30, ChronoUnit.DAYS)))
-		           .claim("rol", "owner")
-		           .claim("typ", "ref")
-		           .signWith(secret)
-		           .serializeToJsonWith(new JacksonSerializer<>(objectMapper))
-		           .compact();
+                   .setSubject(owner.getEmail())
+                   .setIssuedAt(issuedAt)
+                   .setExpiration(Date.from(issuedAt.toInstant().plus(30, ChronoUnit.DAYS)))
+                   .claim("rol", "owner")
+                   .claim("typ", "ref")
+                   .signWith(secret)
+                   .serializeToJsonWith(new JacksonSerializer<>(objectMapper))
+                   .compact();
 	}
 
 	public String makeParticipantAccessToken(QuestParticipant participant) {
 		Date issuedAt = new Date();
 		return Jwts.builder()
-                   .setSubject(participant.getEmail())
-                   .setIssuedAt(issuedAt)
-                   .setExpiration(Date.from(issuedAt.toInstant().plus(1, ChronoUnit.DAYS)))
+		           .setSubject(participant.getEmail())
+		           .setIssuedAt(issuedAt)
+		           .setExpiration(Date.from(issuedAt.toInstant().plus(1, ChronoUnit.DAYS)))
 		           .claim("group", participant.getGroup().getId())
-                   .claim("rol", "participant")
-                   .claim("typ", "acc")
-                   .signWith(secret)
-                   .serializeToJsonWith(new JacksonSerializer<>(objectMapper))
-                   .compact();
+		           .claim("rol", "participant")
+		           .claim("typ", "acc")
+		           .signWith(secret)
+		           .serializeToJsonWith(new JacksonSerializer<>(objectMapper))
+		           .compact();
 	}
 
 	public String makeParticipantRefreshToken(QuestParticipant participant) {
@@ -90,34 +89,58 @@ public class JwtService {
 	}
 
 	public Jws<Claims> parseOwnerRefreshToken(String token) {
-		return Jwts.parserBuilder()
+		try {
+			return Jwts.parserBuilder()
 //		           .setSigningKeyResolver(keyResolver)
-		           .setSigningKey(secret)
-		           .require("typ", "ref")
-		           .require("rol", "owner")
-		           .deserializeJsonWith(new JacksonDeserializer<>(objectMapper))
-		           .build()
-		           .parseClaimsJws(token);
+                       .setSigningKey(secret)
+                       .require("typ", "ref")
+                       .require("rol", "owner")
+                       .deserializeJsonWith(new JacksonDeserializer<>(objectMapper))
+                       .build()
+                       .parseClaimsJws(token);
+		} catch (ExpiredJwtException
+				| UnsupportedJwtException
+				| MalformedJwtException
+				| SignatureException
+				| IllegalArgumentException e) {
+			return null;
+		}
 	}
 
 	public Jws<Claims> parseParticipantRefreshToken(String token) {
-		return Jwts.parserBuilder()
+		try {
+			return Jwts.parserBuilder()
 //		           .setSigningKeyResolver(keyResolver)
-                   .setSigningKey(secret)
-                   .require("typ", "ref")
-                   .require("rol", "participant")
-                   .deserializeJsonWith(new JacksonDeserializer<>(objectMapper))
-                   .build()
-                   .parseClaimsJws(token);
+                       .setSigningKey(secret)
+                       .require("typ", "ref")
+                       .require("rol", "participant")
+                       .deserializeJsonWith(new JacksonDeserializer<>(objectMapper))
+                       .build()
+                       .parseClaimsJws(token);
+		} catch (ExpiredJwtException
+				| UnsupportedJwtException
+				| MalformedJwtException
+				| SignatureException
+				| IllegalArgumentException e) {
+			return null;
+		}
 	}
 
 	public Jws<Claims> parseAccessToken(String token) {
-		return Jwts.parserBuilder()
+		try {
+			return Jwts.parserBuilder()
 //		           .setSigningKeyResolver(keyResolver)
-                   .setSigningKey(secret)
-                   .require("typ", "acc")
-                   .deserializeJsonWith(new JacksonDeserializer<>(objectMapper))
-                   .build()
-                   .parseClaimsJws(token);
+                       .setSigningKey(secret)
+                       .require("typ", "acc")
+                       .deserializeJsonWith(new JacksonDeserializer<>(objectMapper))
+                       .build()
+                       .parseClaimsJws(token);
+		} catch (ExpiredJwtException
+				| UnsupportedJwtException
+				| MalformedJwtException
+				| SignatureException
+				| IllegalArgumentException e) {
+			return null;
+		}
 	}
 }

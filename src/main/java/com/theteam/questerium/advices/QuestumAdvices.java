@@ -1,8 +1,9 @@
 package com.theteam.questerium.advices;
 
 import com.theteam.questerium.exceptions.GroupNotFoundException;
-import com.theteam.questerium.exceptions.TokenExpiredException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -15,9 +16,9 @@ public class QuestumAdvices {
 		return ex.getMessage();
 	}
 
-	@ExceptionHandler(TokenExpiredException.class)
+	@ExceptionHandler(BadCredentialsException.class)
 	@ResponseStatus(HttpStatus.UNAUTHORIZED)
-	String tokenHasExpiredHandler(TokenExpiredException ex) {
-		return ex.getMessage();
+	ResponseEntity<String> groupNotFoundHandler(BadCredentialsException ex) {
+		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ex.getMessage());
 	}
 }
