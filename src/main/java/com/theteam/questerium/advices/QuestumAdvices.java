@@ -1,6 +1,7 @@
 package com.theteam.questerium.advices;
 
 import com.theteam.questerium.exceptions.GroupNotFoundException;
+import com.theteam.questerium.responses.QuestumError;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -18,7 +19,10 @@ public class QuestumAdvices {
 
 	@ExceptionHandler(BadCredentialsException.class)
 	@ResponseStatus(HttpStatus.UNAUTHORIZED)
-	ResponseEntity<String> groupNotFoundHandler(BadCredentialsException ex) {
-		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ex.getMessage());
+	ResponseEntity<QuestumError> groupNotFoundHandler(BadCredentialsException ex) {
+		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(QuestumError.builder()
+		                                                                       .error("unauthorized")
+		                                                                       .desc(ex.getMessage().toLowerCase())
+		                                                                       .build());
 	}
 }
