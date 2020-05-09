@@ -54,6 +54,9 @@ public class LoginController {
 	public ResponseEntity<OwnerLoginResponse> groupOwnerLogin(@RequestBody OwnerLoginRequest req) {
 		if (req.getRefreshToken() != null) {
 			var claims = jwtService.parseOwnerRefreshToken(req.getRefreshToken());
+			if (claims == null) {
+				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+			}
 			Optional<QuestGroupOwner> owner = owners.findByEmail(claims.getBody().getSubject());
 			if (owner.isEmpty()) {
 				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
@@ -86,6 +89,9 @@ public class LoginController {
 	public ResponseEntity<ParticipantLoginResponse> participantLogin(@RequestBody ParticipantLoginRequest req) {
 		if (req.getRefreshToken() != null) {
 			var claims = jwtService.parseParticipantRefreshToken(req.getRefreshToken()).getBody();
+			if (claims == null) {
+				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+			}
 			Optional<QuestParticipant> participant = participants.findByEmailAndGroup_Id(claims.getSubject(),
 			                                                                             claims.get("group",
 			                                                                                        Long.class));
@@ -98,7 +104,8 @@ public class LoginController {
 			                                                      jwtRefreshToken,
 			                                                      QuestParticipantDTO.of(participant.get())));
 		} else if (!req.getEmail().equals("") && req.getGroupId() > 0) {
-			Optional<QuestParticipant> participant = participants.findByEmailAndGroup_Id(req.getEmail(), req.getGroupId());
+			Optional<QuestParticipant> participant = participants.findByEmailAndGroup_Id(req.getEmail(),
+			                                                                             req.getGroupId());
 			if (participant.isEmpty()) {
 				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 			}
@@ -109,8 +116,8 @@ public class LoginController {
 			String jwtAccessToken = jwtService.makeParticipantAccessToken(participant.get());
 			String jwtRefreshToken = jwtService.makeParticipantRefreshToken(participant.get());
 			return ResponseEntity.ok(new ParticipantLoginResponse(jwtAccessToken,
-			                                                jwtRefreshToken,
-			                                                QuestParticipantDTO.of(participant.get())));
+			                                                      jwtRefreshToken,
+			                                                      QuestParticipantDTO.of(participant.get())));
 		} else {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}

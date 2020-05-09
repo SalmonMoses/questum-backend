@@ -11,6 +11,7 @@ import com.theteam.questerium.repositories.GroupRepository;
 import com.theteam.questerium.requests.ChangeOwnerRequest;
 import com.theteam.questerium.security.GroupOwnerPrincipal;
 import com.theteam.questerium.services.SHA512Service;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
@@ -32,6 +33,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/owners")
+@Slf4j
 public class GroupOwnerController {
 	@Autowired
 	private GroupOwnerRepository owners;
@@ -86,6 +88,7 @@ public class GroupOwnerController {
 			ownerObj.setPassword(newPassword);
 		}
 		owners.save(ownerObj);
+		log.info("Group owner #{} changed his info", id);
 		return owner
 				.map(QuestGroupOwnerDTO::of)
 				.map(ResponseEntity::ok)
@@ -107,6 +110,7 @@ public class GroupOwnerController {
 		}
 		QuestGroupOwner ownerObj = owner.get();
 		owners.delete(ownerObj);
+		log.info("Group owner #{} has been deleted", ownerObj.getId());
 		return new ResponseEntity(HttpStatus.OK);
 	}
 
@@ -121,7 +125,8 @@ public class GroupOwnerController {
 	}
 
 	@GetMapping("/{id}/avatar")
-	public void getAvatar(@PathVariable long id, Authentication auth, HttpServletResponse res) throws IOException, MinioException {
+	public void getAvatar(@PathVariable long id, Authentication auth, HttpServletResponse res) throws IOException,
+			MinioException {
 		Optional<QuestGroupOwner> owner = owners.findById(id);
 		if (owner.isEmpty()) {
 			res.setStatus(404);
@@ -129,16 +134,18 @@ public class GroupOwnerController {
 		}
 		String filename = "avatars/owners/" + String.valueOf(owner.get().getId());
 
-		InputStream inputStream = minioService.get(Path.of(filename));
-		InputStreamResource inputStreamResource = new InputStreamResource(inputStream);
+		try {
+			InputStream inputStream = minioService.get(Path.of(filename));
+			InputStreamResource inputStreamResource = new InputStreamResource(inputStream);
 
-		// Set the content type and attachment header.
-		res.addHeader("Content-disposition", "attachment;filename=" + filename);
-		res.setContentType(URLConnection.guessContentTypeFromStream(inputStream));
+			// Set the content type and attachment header.
+			res.addHeader("Content-disposition", "attachment;filename=" + filename);
+			res.setContentType(URLConnection.guessContentTypeFromStream(inputStream));
 
-		// Copy the stream to the response's output stream.
-		IOUtils.copy(inputStream, res.getOutputStream());
-		res.flushBuffer();
+			// Copy the stream to the response's output stream.
+			IOUtils.copy(inputStream, res.getOutputStream());
+			res.flushBuffer();
+		} catch (MinioException ignored) {}
 	}
 
 	@PutMapping("/{id}/avatar")
@@ -162,6 +169,7 @@ public class GroupOwnerController {
 				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 			}
 			minioService.upload(Path.of(filename), newAvatar.getInputStream(), newAvatar.getContentType());
+			log.info("Group owner #{} avatar has been updated", owner.get().getId());
 			return new ResponseEntity<>(HttpStatus.OK);
 		} catch (MinioException e) {
 			throw new IllegalStateException("The file cannot be upload on the internal storage. Please retry later",

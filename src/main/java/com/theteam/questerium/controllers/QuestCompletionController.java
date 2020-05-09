@@ -12,6 +12,7 @@ import com.theteam.questerium.security.ParticipantPrincipal;
 import com.theteam.questerium.services.NotificationService;
 import com.theteam.questerium.services.QuestService;
 import com.theteam.questerium.services.SecurityService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
@@ -30,6 +31,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 @RestController
+@Slf4j
 public class QuestCompletionController {
 	@Autowired
 	private final GroupRepository groups;
@@ -96,6 +98,13 @@ public class QuestCompletionController {
 		if (maybeSub.get().getVerificationType().equalsIgnoreCase("NONE")) {
 			completedSub.setVerified(true);
 			completedSubquests.save(completedSub);
+			log.info("Participant #{} (group #{}) finished subquest #{} (quest #{}). Completion #{}", participant.get()
+			                                                                                                     .getId(), participant
+					         .get()
+					         .getGroup()
+					         .getId(), completedSub.getSubquest().getId(), completedSub.getSubquest()
+			                                                                           .getParentQuest()
+			                                                                           .getId(), completedSub.getId());
 			notificationService.sendSubquestCompletingNotification(participant.get(), maybeSub.get());
 			questService.tryCompleteQuest(participant.get(), maybeSub.get().getParentQuest());
 		} else if (maybeSub.get().getVerificationType().equalsIgnoreCase("TEXT") && req.getAnswer()
@@ -103,9 +112,25 @@ public class QuestCompletionController {
 		                                                                                               .getExpectedAnswer())) {
 			completedSub.setVerified(true);
 			completedSubquests.save(completedSub);
+			log.info("Participant #{} (group #{}) finished subquest #{} (quest #{}). Completion #{}", participant.get()
+			                                                                                                     .getId(), participant
+					         .get()
+					         .getGroup()
+					         .getId(), completedSub.getSubquest().getId(), completedSub.getSubquest()
+			                                                                           .getParentQuest()
+			                                                                           .getId(), completedSub.getId());
 			notificationService.sendSubquestCompletingNotification(participant.get(), maybeSub.get());
 			questService.tryCompleteQuest(participant.get(), maybeSub.get().getParentQuest());
 		} else {
+			log.info("Participant #{} (group #{}) submitted answer for subquest #{} (quest #{}). Completion #{}",
+			         participant
+					         .get()
+					         .getId(), participant
+					         .get()
+					         .getGroup()
+					         .getId(), completedSub.getSubquest().getId(), completedSub.getSubquest()
+			                                                                           .getParentQuest()
+			                                                                           .getId(), completedSub.getId());
 			notificationService.sendSentAnswerNotification(participant.get(), maybeSub.get());
 			completedSubquests.save(completedSub);
 		}
@@ -145,6 +170,16 @@ public class QuestCompletionController {
 				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 			}
 			minioService.upload(Path.of(filename), answerFile.getInputStream(), answerFile.getContentType());
+			log.info("Participant #{} (group #{}) uploaded photo for completion #{} (subquest #{}, quest #{})",
+			         userPrincipal
+					         .getId(), completedSub.getSubquest()
+			                                       .getParentQuest()
+			                                       .getGroup()
+			                                       .getId(), verificationId, completedSub.getSubquest()
+			                                                                             .getId(),
+			         completedSub.getSubquest()
+			                                                                                                   .getParentQuest()
+			                                                                                                   .getId());
 		} catch (MinioException e) {
 			throw new IllegalStateException("The file cannot be upload on the internal storage. Please retry later",
 			                                e);
@@ -195,6 +230,11 @@ public class QuestCompletionController {
 		notificationService.sendAnswerAcceptedNotification(subquest.getUser(), subquest.getSubquest());
 		CompletedSubquestDTO res = CompletedSubquestDTO.of(subquest);
 		QuestParticipant user = subquest.getUser();
+		log.info("Subquest completion #{} (user #{}, subquest #{}, quest #{}) was verified", verificationId,
+		         subquest.getUser()
+		                                                                                                             .getId(), subquest
+				         .getSubquest()
+				         .getId(), subquest.getSubquest().getParentQuest().getId());
 		questService.tryCompleteQuest(user, subquest.getSubquest().getParentQuest());
 		return ResponseEntity.ok(res);
 	}
@@ -222,6 +262,11 @@ public class QuestCompletionController {
 		}
 		CompletedSubquest subquest = completedSub.get();
 		completedSubquests.delete(subquest);
+		log.info("Subquest completion #{} (user #{}, subquest #{}, quest #{}) was rejected", verificationId,
+		         subquest.getUser()
+		                 .getId(), subquest
+				         .getSubquest()
+				         .getId(), subquest.getSubquest().getParentQuest().getId());
 		notificationService.sendAnswerRejectedNotification(subquest.getUser(), subquest.getSubquest());
 		return new ResponseEntity<>(HttpStatus.OK);
 	}

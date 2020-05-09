@@ -10,8 +10,14 @@ public class QuestDTO {
 	long id;
 	String title;
 	String desc;
+	int points;
 
 	public static QuestDTO of(Quest q) {
-		return QuestDTO.builder().id(q.getId()).title(q.getTitle()).desc(q.getDesc()).build();
+		return QuestDTO.builder()
+		               .id(q.getId())
+		               .title(q.getTitle())
+		               .desc(q.getDesc())
+		               .points(q.getPoints())
+		               .build();
 	}
 }

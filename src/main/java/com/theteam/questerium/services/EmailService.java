@@ -11,18 +11,19 @@ import com.theteam.questerium.models.QuestGroup;
 import com.theteam.questerium.models.QuestGroupOwner;
 import com.theteam.questerium.models.QuestParticipant;
 import lombok.NonNull;
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 
 @Service
-@Log
+@Slf4j
 public class EmailService {
 	private final String API_KEY = "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";
 	private Email sender = new Email("Questerium@questerium.app");
 	private final String SIGN_UP_TMPLT_ID = "d-faf43ba3ce12489da4f196ba8d8ea18c";
 	private final String USR_SIGN_UP_TMPLT_ID = "d-6154bf4dea994ba1b034239b9f0f199a";
+	private final String RESET_PSWD_TMPLT_ID = "d-108e4d6b5a65434c8af83be602fdf3ca";
 
 	public void sendSignUpMessage(QuestGroupOwner owner) throws IOException {
 		String subject = "Your sign up on Questerium";
@@ -76,6 +77,58 @@ public class EmailService {
 		Response response = sg.api(request);
 		if(response.getBody().equals("")) {
 			log.info("Successfully sent participant sign up message to " + participant.getEmail());
+		} else {
+			log.info(response.getBody());
+		}
+	}
+
+	public void sendRestorePswdMessage(QuestGroupOwner owner, String pswd) throws IOException {
+		String subject = "Reset your password on Questerium";
+		Mail mail = new Mail();
+		mail.setFrom(sender);
+		mail.setSubject(subject);
+		mail.setTemplateId(RESET_PSWD_TMPLT_ID);
+
+		Personalization personalization = new Personalization();
+		personalization.addTo(new Email(owner.getEmail()));
+		personalization.addDynamicTemplateData("name", owner.getName());
+		personalization.addDynamicTemplateData("pswd", pswd);
+		mail.addPersonalization(personalization);
+
+		SendGrid sg = new SendGrid(API_KEY);
+		Request request = new Request();
+		request.setMethod(Method.POST);
+		request.setEndpoint("mail/send");
+		request.setBody(mail.build());
+		Response response = sg.api(request);
+		if(response.getBody().equals("")) {
+			log.info("Successfully sent admin restore admin password message to " + owner.getEmail());
+		} else {
+			log.info(response.getBody());
+		}
+	}
+
+	public void sendRestorePswdMessage(QuestParticipant participant, String pswd) throws IOException {
+		String subject = "Reset your password on Questerium";
+		Mail mail = new Mail();
+		mail.setFrom(sender);
+		mail.setSubject(subject);
+		mail.setTemplateId(RESET_PSWD_TMPLT_ID);
+
+		Personalization personalization = new Personalization();
+		personalization.addTo(new Email(participant.getEmail()));
+		personalization.addDynamicTemplateData("name", participant.getName());
+		personalization.addDynamicTemplateData("pswd", pswd);
+		mail.addPersonalization(personalization);
+
+		SendGrid sg = new SendGrid(API_KEY);
+		Request request = new Request();
+		request.setMethod(Method.POST);
+		request.setEndpoint("mail/send");
+		request.setBody(mail.build());
+		Response response = sg.api(request);
+		if(response.getBody().equals("")) {
+			log.info("Successfully sent participant restore admin password message to " + participant.getEmail());
 		} else {
 			log.info(response.getBody());
 		}

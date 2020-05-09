@@ -7,6 +7,7 @@ import io.jsonwebtoken.Jws;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -32,6 +33,9 @@ public class QuestumAuthManager implements AuthenticationManager {
 //		if(jwsToken.getBody().getExpiration().before(new Date())) {
 //			throw new TokenExpiredException(token.get().getToken());
 //		}
+		if(jwsToken == null) {
+			throw new BadCredentialsException("Invalid JWToken!");
+		}
 		switch (jwsToken.getBody().get("rol", String.class)) {
 			case "owner": {
 				GroupOwnerPrincipal details = authService.handleOwnerLogin(jwsToken);
