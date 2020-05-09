@@ -3,8 +3,10 @@ package com.theteam.questerium.models;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
+import org.hibernate.annotations.CreationTimestamp;
 
 import javax.persistence.*;
+import java.sql.Timestamp;
 
 @Entity
 @Data
@@ -34,4 +36,9 @@ public class Notification {
 
 	@Column(name = "is_sent")
 	private boolean isSent;
+
+	@Column(name = "created_at")
+	@CreationTimestamp
+	@NonNull
+	private Timestamp createdAt;
 }
