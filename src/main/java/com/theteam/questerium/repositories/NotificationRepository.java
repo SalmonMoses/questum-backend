@@ -7,12 +7,12 @@ import org.springframework.data.jpa.repository.Query;
 import java.util.List;
 
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
-	@Query("SELECT n FROM Notification n WHERE n.userId = :userId AND n.userType = :userType AND n.isRead = false")
+	@Query("SELECT n FROM Notification n WHERE n.userId = :userId AND n.userType = :userType AND n.isRead = false ORDER BY n.createdAt")
 	List<Notification> findAllUnreadForUser(long userId, String userType);
 
-	@Query("SELECT n FROM Notification n WHERE n.userId = :userId AND n.userType = :userType AND n.isSent = false")
+	@Query("SELECT n FROM Notification n WHERE n.userId = :userId AND n.userType = :userType AND n.isSent = false  ORDER BY n.createdAt")
 	List<Notification> findAllUnsentForUser(long userId, String userType);
 
-	@Query("SELECT n FROM Notification n WHERE n.userId = :userId AND n.userType = :userType")
+	@Query("SELECT n FROM Notification n WHERE n.userId = :userId AND n.userType = :userType ORDER BY n.createdAt")
 	List<Notification> findAllForUser(long userId, String userType);
 }
