@@ -34,6 +34,32 @@ public class NotificationController {
 
 	@GetMapping("/owner/{id}")
 	@PreAuthorize("hasRole('ROLE_OWNER')")
+	public ResponseEntity<UnreadNotificationsResponse> getAllNotificationsForOwner(@PathVariable long id,
+	                                                                                     Authentication auth) {
+		String ownerEmail = ((GroupOwnerPrincipal) auth.getPrincipal()).getEmail();
+		Optional<QuestGroupOwner> user = owners.findByEmail(ownerEmail);
+		Optional<QuestGroupOwner> owner = owners.findById(id);
+		if (owner.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		if (!user.get().equals(owner.get())) {
+			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+		}
+
+		List<Notification> unreadNotifications = notifications.findAllForUser(id, "OWNER");
+
+		UnreadNotificationsResponse res = new UnreadNotificationsResponse(unreadNotifications.stream()
+		                                                                                     .peek(n -> {
+			                                                                                     n.setSent(true);
+			                                                                                     notifications.save(n);
+		                                                                                     })
+		                                                                                     .map(NotificationDTO::of)
+		                                                                                     .collect(Collectors.toList()));
+		return ResponseEntity.ok(res);
+	}
+
+	@GetMapping("/owner/{id}/unread")
+	@PreAuthorize("hasRole('ROLE_OWNER')")
 	public ResponseEntity<UnreadNotificationsResponse> getAllUnreadNotificationsForOwner(@PathVariable long id,
 	                                                                                     Authentication auth) {
 		String ownerEmail = ((GroupOwnerPrincipal) auth.getPrincipal()).getEmail();
@@ -111,6 +137,32 @@ public class NotificationController {
 	}
 
 	@GetMapping("/participants/{id}")
+	@PreAuthorize("hasRole('ROLE_PARTICIPANT')")
+	public ResponseEntity<UnreadNotificationsResponse> getAllNotificationsForParticipant(@PathVariable long id,
+	                                                                                           Authentication auth) {
+		ParticipantPrincipal principal = (ParticipantPrincipal) auth.getPrincipal();
+		Optional<QuestParticipant> participant = participants.findById(id);
+		if (participant.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		QuestParticipant participantObj = participant.get();
+		if (principal.getId() != id) {
+			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+		}
+
+		List<Notification> unreadNotifications = notifications.findAllForUser(id, "PARTICIPANT");
+
+		UnreadNotificationsResponse res = new UnreadNotificationsResponse(unreadNotifications.stream()
+		                                                                                     .peek(n -> {
+			                                                                                     n.setSent(true);
+			                                                                                     notifications.save(n);
+		                                                                                     })
+		                                                                                     .map(NotificationDTO::of)
+		                                                                                     .collect(Collectors.toList()));
+		return ResponseEntity.ok(res);
+	}
+
+	@GetMapping("/participants/{id}/unread")
 	@PreAuthorize("hasRole('ROLE_PARTICIPANT')")
 	public ResponseEntity<UnreadNotificationsResponse> getAllUnreadNotificationsForParticipant(@PathVariable long id,
 	                                                                                           Authentication auth) {
