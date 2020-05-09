@@ -14,6 +14,7 @@ import java.util.Map;
 @Builder
 public class NotificationDTO {
 	private long id;
+	private boolean isRead;
 
 	@NonNull
 	private String type;
@@ -36,6 +37,7 @@ public class NotificationDTO {
 		                      .id(n.getId())
 		                      .type(n.getType())
 		                      .content(content)
+		                      .isRead(n.isRead())
 		                      .build();
 	}
 }
