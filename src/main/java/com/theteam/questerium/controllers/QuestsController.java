@@ -133,6 +133,9 @@ public class QuestsController {
 		if (req.getDesc() != null) {
 			quest.setDesc(req.getDesc());
 		}
+		if(req.getPoints() != null) {
+			quest.setPoints(req.getPoints());
+		}
 		quests.save(quest);
 		log.info("Quest #{} (group #{}) was updated", quest.getId(), quest.getGroup().getId());
 		return ResponseEntity.ok(QuestDTO.of(quest));

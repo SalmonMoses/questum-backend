@@ -8,4 +8,5 @@ import lombok.NoArgsConstructor;
 public class ChangeQuestRequest {
 	private String title;
 	private String desc;
+	private Integer points;
 }
