@@ -20,7 +20,7 @@ import java.io.IOException;
 @Slf4j
 public class EmailService {
 	private final String API_KEY = "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";
-	private Email sender = new Email("Questerium@questerium.app");
+	private Email sender = new Email("Questerium@questerium.live");
 	private final String SIGN_UP_TMPLT_ID = "d-faf43ba3ce12489da4f196ba8d8ea18c";
 	private final String USR_SIGN_UP_TMPLT_ID = "d-6154bf4dea994ba1b034239b9f0f199a";
 	private final String RESET_PSWD_TMPLT_ID = "d-108e4d6b5a65434c8af83be602fdf3ca";
