@@ -53,11 +53,18 @@ public class LoginController {
 	@PostMapping("/owner")
 	public ResponseEntity<OwnerLoginResponse> groupOwnerLogin(@RequestBody OwnerLoginRequest req) {
 		if (req.getRefreshToken() != null) {
-			var claims = jwtService.parseOwnerRefreshToken(req.getRefreshToken());
+			var claims = jwtService.parseOwnerRefreshToken(req.getRefreshToken()).getBody();
 			if (claims == null) {
 				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 			}
-			Optional<QuestGroupOwner> owner = owners.findByEmail(claims.getBody().getSubject());
+			String subject = claims.getSubject();
+			long id;
+			try {
+				id = Long.parseLong(subject);
+			} catch (NumberFormatException e) {
+				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+			}
+			Optional<QuestGroupOwner> owner = owners.findById(id);
 			if (owner.isEmpty()) {
 				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 			}
@@ -92,9 +99,14 @@ public class LoginController {
 			if (claims == null) {
 				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 			}
-			Optional<QuestParticipant> participant = participants.findByEmailAndGroup_Id(claims.getSubject(),
-			                                                                             claims.get("group",
-			                                                                                        Long.class));
+			String subject = claims.getSubject();
+			long id;
+			try {
+				id = Long.parseLong(subject);
+			} catch (NumberFormatException e) {
+				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+			}
+			Optional<QuestParticipant> participant = participants.findById(id);
 			if (participant.isEmpty()) {
 				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 			}

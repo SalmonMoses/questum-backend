@@ -31,7 +31,7 @@ public class JwtService {
 		Date issuedAt = new Date();
 		return Jwts.builder()
 //		           .setHeaderParam("kid", publicKey.getId())
-                   .setSubject(owner.getEmail())
+                   .setSubject(String.valueOf(owner.getId()))
                    .setIssuedAt(issuedAt)
                    .setExpiration(Date.from(issuedAt.toInstant().plus(1, ChronoUnit.DAYS)))
                    .claim("rol", "owner")
@@ -50,7 +50,7 @@ public class JwtService {
 		Date issuedAt = new Date();
 		return Jwts.builder()
 //		           .setHeaderParam(JwsHeader.KEY_ID, publicKey.getId())
-                   .setSubject(owner.getEmail())
+                   .setSubject(String.valueOf(owner.getId()))
                    .setIssuedAt(issuedAt)
                    .setExpiration(Date.from(issuedAt.toInstant().plus(30, ChronoUnit.DAYS)))
                    .claim("rol", "owner")
@@ -63,10 +63,9 @@ public class JwtService {
 	public String makeParticipantAccessToken(QuestParticipant participant) {
 		Date issuedAt = new Date();
 		return Jwts.builder()
-		           .setSubject(participant.getEmail())
+		           .setSubject(String.valueOf(participant.getId()))
 		           .setIssuedAt(issuedAt)
 		           .setExpiration(Date.from(issuedAt.toInstant().plus(1, ChronoUnit.DAYS)))
-		           .claim("group", participant.getGroup().getId())
 		           .claim("rol", "participant")
 		           .claim("typ", "acc")
 		           .signWith(secret)
@@ -77,10 +76,9 @@ public class JwtService {
 	public String makeParticipantRefreshToken(QuestParticipant participant) {
 		Date issuedAt = new Date();
 		return Jwts.builder()
-		           .setSubject(participant.getEmail())
+		           .setSubject(String.valueOf(participant.getId()))
 		           .setIssuedAt(issuedAt)
 		           .setExpiration(Date.from(issuedAt.toInstant().plus(1, ChronoUnit.DAYS)))
-		           .claim("group", participant.getGroup().getId())
 		           .claim("rol", "participant")
 		           .claim("typ", "ref")
 		           .signWith(secret)
