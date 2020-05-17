@@ -9,6 +9,10 @@ import com.theteam.questerium.repositories.NotificationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+
 @Service
 public class NotificationService {
 	@Autowired
@@ -65,5 +69,10 @@ public class NotificationService {
 		                                          .build();
 		notifications.save(n);
 		return n;
+	}
+
+	public int deleteNotificationsCreatedBefore30Days() {
+		Instant monthBefore = Instant.now().minus(30, ChronoUnit.DAYS);
+		return notifications.deleteNotificationsCreatedBeforeNDays(Timestamp.from(monthBefore));
 	}
 }
