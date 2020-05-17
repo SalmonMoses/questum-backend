@@ -10,6 +10,7 @@ import com.theteam.questerium.security.ParticipantPrincipal;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -24,7 +25,14 @@ public class QuestumAuthService {
 	QuestParticipantRepository participants;
 
 	public GroupOwnerPrincipal handleOwnerLogin(Jws<Claims> token) {
-		QuestGroupOwner owner = owners.findByEmail(token.getBody().getSubject()).get();
+		String subject = token.getBody().getSubject();
+		long id;
+		try {
+			id = Long.parseLong(subject);
+		} catch (NumberFormatException e) {
+			throw new BadCredentialsException("Invalid JWToken");
+		}
+		QuestGroupOwner owner = owners.findById(id).get();
 		List<Long> groupIds = owner.getQuestGroups()
 		                           .stream()
 		                           .map(QuestGroup::getId)
@@ -33,10 +41,14 @@ public class QuestumAuthService {
 	}
 
 	public ParticipantPrincipal handleUserLogin(Jws<Claims> token) {
-		QuestParticipant user = participants.findByEmailAndGroup_Id(token.getBody().getSubject(), token.getBody()
-		                                                                                               .get("group",
-		                                                                                                    Long.class))
-		                                    .get();
+		String subject = token.getBody().getSubject();
+		long id;
+		try {
+			id = Long.parseLong(subject);
+		} catch (NumberFormatException e) {
+			throw new BadCredentialsException("Invalid JWToken");
+		}
+		QuestParticipant user = participants.findById(id).get();
 		return new ParticipantPrincipal(user.getId(), user.getEmail(), user.getName(), user.getGroup().getId());
 	}
 }
