@@ -12,6 +12,8 @@ import com.theteam.questerium.models.QuestGroupOwner;
 import com.theteam.questerium.models.QuestParticipant;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -19,11 +21,18 @@ import java.io.IOException;
 @Service
 @Slf4j
 public class EmailService {
-	private final String API_KEY = "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";
+	@Autowired
+	private Environment env;
+
+	private final String API_KEY;
 	private Email sender = new Email("Questerium@questerium.live");
 	private final String SIGN_UP_TMPLT_ID = "d-faf43ba3ce12489da4f196ba8d8ea18c";
 	private final String USR_SIGN_UP_TMPLT_ID = "d-6154bf4dea994ba1b034239b9f0f199a";
 	private final String RESET_PSWD_TMPLT_ID = "d-108e4d6b5a65434c8af83be602fdf3ca";
+
+	public EmailService(Environment env) {
+		API_KEY = env.getProperty("spring.sendgrid.api-key");
+	}
 
 	public void sendSignUpMessage(QuestGroupOwner owner) throws IOException {
 		String subject = "Your sign up on Questerium";

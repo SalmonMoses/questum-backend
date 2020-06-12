@@ -25,3 +25,5 @@ spring:
     bucket: questerium
     secret-key: 9b88ab4b639fc4ba54d635b9c68c27e5
     url: http://localhost:9000/
+  sendgrid:
+    api-key: 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

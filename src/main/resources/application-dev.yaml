@@ -19,3 +19,5 @@ spring:
     bucket: questerium
     access-key: minioadmin
     secret-key: minioadmin
+  sendgrid:
+    api-key: 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
